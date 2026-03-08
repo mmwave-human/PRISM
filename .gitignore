@@ -1,0 +1,29 @@
+# 数据集
+data/
+
+# 训练产出
+experiments/
+*.pth
+*.pt
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 编译产物
+*.so
+*.o
+*.a
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+wandb/
+runs/
+.idea/
+archive/
+*.npy

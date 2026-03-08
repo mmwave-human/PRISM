@@ -1,0 +1,10 @@
+# ninja log v7
+0	20149	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/ball_query.o	4bd5adaf3fc18853
+3	20564	1771477634380944658	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/sampling.o	ff31c161608e2658
+1	20593	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/group_points.o	d62d3944888bab93
+1	20731	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/bindings.o	9523a268ae492445
+2	20847	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/interpolate.o	6c75b464a958dedb
+2	38029	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/group_points_gpu.o	969dab2eec416c70
+1	38159	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/ball_query_gpu.o	6726cd9706a7540b
+2	38343	1771477634376944552	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/interpolate_gpu.o	1a8c6e781d1c34a2
+3	39105	1771477634380944658	/home/hjc/Desktop/LDT/extern/pointnet2_ops_lib/build/temp.linux-x86_64-cpython-38/pointnet2_ops/_ext-src/src/sampling_gpu.o	79cbc11804cd6114

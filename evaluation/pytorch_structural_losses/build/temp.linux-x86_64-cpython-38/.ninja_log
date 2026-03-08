@@ -1,0 +1,5 @@
+# ninja log v7
+0	794	1771477139707817161	/home/hjc/Desktop/LDT/evaluation/pytorch_structural_losses/build/temp.linux-x86_64-cpython-38/src/nndistance.o	5bce4e7358ea6105
+0	1408	1771477139707817161	/home/hjc/Desktop/LDT/evaluation/pytorch_structural_losses/build/temp.linux-x86_64-cpython-38/src/approxmatch.o	178294ae122cb1c9
+1	19022	1771477139711817268	/home/hjc/Desktop/LDT/evaluation/pytorch_structural_losses/build/temp.linux-x86_64-cpython-38/src/structural_loss.o	6b40fb4c257209ed
+0	19149	1771477139707817161	/home/hjc/Desktop/LDT/evaluation/pytorch_structural_losses/build/temp.linux-x86_64-cpython-38/pybind/bind.o	642efbfcfb3246b

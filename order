@@ -1,0 +1,170 @@
+conda activate LDT
+python -u train_Compressor.py --dataset airplane
+python train_Completion_Compressor.py --dataset plane
+python train_Completion_Latent_Diffusion.py --dataset plane --resume False
+
+# 弹窗显示
+python vis_completion.py \
+  --smp  experiments/Latent_Diffusion_Trainer/completion/plane/smp_ep21.npy \
+  --ref  experiments/Latent_Diffusion_Trainer/completion/plane/ref_ep21.npy \
+  --part experiments/Latent_Diffusion_Trainer/completion/plane/part_ep21.npy
+
+# 保存为图片
+python vis_completion.py \
+  --smp  experiments/Latent_Diffusion_Trainer/completion/plane/smp_ep21.npy \
+  --ref  experiments/Latent_Diffusion_Trainer/completion/plane/ref_ep21.npy \
+  --part experiments/Latent_Diffusion_Trainer/completion/plane/part_ep21.npy \
+  --num 4 --save result_ep21.png
+
+#上传数据集
+scp -P 22 -r "D:\mmRadar Code\MMFi" hjc@10.97.26.56:/home/hjc/Desktop/LDT/data
+
+python train_MMFi_Compressor.py \
+    --dataset mmfi_compressor \
+    --trainer_type Compressor_Trainer \
+    --resume False
+
+python train_MMFi_LDT.py \
+    --dataset mmfi \
+    --trainer_type Latent_Diffusion_Trainer \
+    --resume False \
+    --evaluate False
+
+python train_MMFi_Compressor.py \
+    --dataset mmfi \
+    --trainer_type train_MMFi_Compressor \
+    --resume True \
+    --resume_epoch 50 \
+    --evaluate False
+
+python train_MMFi_Compressor.py \
+  --resume True \
+  --run_dir experiments/Compressor_Trainer/mmfi_compressor_202603032012 \
+  --resume_epoch 1000
+
+python train_SkelKD.py --resume True \
+  --run_dir experiments/SkelKD/mmfi_skelkd_202603061432 \
+  --resume_epoch 100
+
+单视图
+python3 - << 'EOF'
+import numpy as np
+import matplotlib.pyplot as plt
+
+data = np.load('experiments/Compressor_Trainer/mmfi_compressor_202603032012/rec_ep401.npy')
+print(f"shape: {data.shape}")
+
+fig = plt.figure(figsize=(32, 4))
+for i in range(8):
+    pc = data[i]
+    ax = fig.add_subplot(1, 8, i+1, projection='3d')
+    ax.scatter(pc[:,0], pc[:,1], pc[:,2], s=1.5, c=pc[:,2], cmap='viridis')
+    ax.set_title(f'Sample {i+1}')
+    ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
+
+plt.tight_layout()
+plt.savefig('rec_ep401.png', dpi=150, bbox_inches='tight')
+print("saved: rec_ep401.png")
+EOF
+
+```
+多视图
+python3 - << 'EOF'
+import numpy as np
+import matplotlib.pyplot as plt
+
+data = np.load('experiments/Compressor_Trainer/mmfi_compressor_202603032012/rec_ep901.npy')
+
+fig = plt.figure(figsize=(20, 12))
+angles = [(0,0,'正面'), (0,90,'侧面'), (90,0,'顶视'), (30,45,'斜视')]
+for row, (elev, azim, title) in enumerate(angles):
+    for col in range(4):
+        pc = data[col]
+        ax = fig.add_subplot(4, 4, row*4+col+1, projection='3d')
+        ax.scatter(pc[:,0], pc[:,1], pc[:,2], s=3, c=pc[:,2], cmap='viridis')
+        if col == 0:
+            ax.set_ylabel(title)
+        ax.set_xticks([]); ax.set_yticks([]); ax.set_zticks([])
+        ax.view_init(elev=elev, azim=azim)
+
+plt.tight_layout()
+plt.savefig('rec_ep901.png', dpi=150, bbox_inches='tight')
+print("saved: rec_ep901.png")
+EOF
+
+  python vis_completion.py \
+  --smp experiments/Latent_Diffusion_Trainer/mmfi_202603031605/smp_ep201.npy \
+  --ref experiments/Latent_Diffusion_Trainer/mmfi_202603031605/ref_ep201.npy \
+  --part experiments/Latent_Diffusion_Trainer/mmfi_202603031605/inp_ep201.npy \
+  --num 4 \
+  --save result_ep201.png
+
+python -c "
+import torch, numpy as np, sys
+sys.path.insert(0, '.')
+from evaluation import compute_all_metrics
+
+smp = torch.from_numpy(np.load('experiments/Latent_Diffusion_Trainer/mmfi_202603031605/smp_ep201.npy')).cuda()
+ref = torch.from_numpy(np.load('experiments/Latent_Diffusion_Trainer/mmfi_202603031605/ref_ep201.npy')).cuda()
+res = compute_all_metrics(smp, ref, batch_size=64)
+for k,v in res.items():
+    print(f'{k}: {v:.6f}')
+"
+
+# 重新 SSH 登录服务器后，列出所有在跑的 session
+tmux ls
+
+# 输出示例：
+# compressor: 1 windows (created Tue Mar  3 20:10:00 2026)
+# skelkd: 1 windows (created Tue Mar  3 20:30:00 2026)
+
+# 连接到某个 session
+tmux attach -t compressor
+tmux attach -t diffusion
+tmux attach -t skelkd
+
+
+# 退出时按 Ctrl+B D 脱离（不要直接关窗口，否则进程会停）
+
+
+# 原来的命令，只加 --action 参数即可
+python vis_skelkd_animation.py \
+    --ckpt experiments/SkelKD/mmfi_skelkd_202603061614/checkpt_2000.pth \
+    --save_dir experiments/SkelKD/mmfi_skelkd_202603061614 \
+    --subject S01 --action A13 --start 100 --end 180
+
+# 批量生成训练集全部 8 个动作
+python vis_skelKD_animation.py \
+    --ckpt experiments/SkelKD/mmfi_skelkd_202603071844/checkpt_2000.pth \
+    --save_dir experiments/SkelKD/mmfi_skelkd_202603071844 \
+    --all_actions --subject S01 --end 100
+
+# 批量 + 同时跑训练集受试者 S01 和验证集受试者 S08
+python vis_skelkd_animation.py \
+    --ckpt experiments/SkelKD/mmfi_skelkd_202603061614/checkpt_2000.pth \
+    --save_dir experiments/SkelKD/mmfi_skelkd_202603061614 \
+    --all_actions --subject S01 S08 --end 60
+
+
+
+# 单动作（等价原来第二条命令）
+python vis_ldt_animation.py \
+    --cfg experiments/Latent_Diffusion_Trainer/config.yaml \
+    --ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/checkpt_1600.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/autoencoder_e_1600.pth \
+    --action A27 --subject S01 --start 100 --end 180 --fmt mp4 \
+    --save_dir experiments/Latent_Diffusion_Trainer/mmfi_202603061327
+
+# 批量生成训练集全部 8 个动作
+python vis_ldt_animation.py \
+    --cfg experiments/Latent_Diffusion_Trainer/config.yaml \
+    --ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603071950/checkpt_900.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603071950/autoencoder_e_900.pth \
+    --all_actions --subject S01 --end 100 --fmt mp4 \
+    --save_dir experiments/Latent_Diffusion_Trainer/mmfi_202603071950
+
+# 批量 + 多受试者（S01 训练集 + S08 验证集对比）
+python vis_ldt_animation.py \
+    --ckpt  experiments/Latent_Diffusion_Trainer/mmfi_202603061327/checkpt_1600.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/autoencoder_e_1600.pth \
+    --all_actions --subject S01 S08 --end 60

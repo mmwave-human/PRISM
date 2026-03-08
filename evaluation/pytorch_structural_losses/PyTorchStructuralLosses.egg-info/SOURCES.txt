@@ -1,0 +1,15 @@
+README.md
+setup.py
+PyTorchStructuralLosses.egg-info/PKG-INFO
+PyTorchStructuralLosses.egg-info/SOURCES.txt
+PyTorchStructuralLosses.egg-info/dependency_links.txt
+PyTorchStructuralLosses.egg-info/requires.txt
+PyTorchStructuralLosses.egg-info/top_level.txt
+StructuralLosses/__init__.py
+StructuralLosses/evaluation_metrics.py
+StructuralLosses/match_cost.py
+StructuralLosses/nn_distance.py
+pybind/bind.cpp
+src/approxmatch.cu
+src/nndistance.cu
+src/structural_loss.cpp
