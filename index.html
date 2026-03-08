@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SKD-Net</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #f7f5f2;
+      --bg2:      #ffffff;
+      --border:   #e5e2dc;
+      --text:     #1a1816;
+      --text2:    #6b6560;
+      --text3:    #a09890;
+      --accent:   #2563eb;
+      --accent-s: rgba(37,99,235,0.08);
+      --red:      #dc2626;
+      --gold:     #b45309;
+    }
+
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 52px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2.5rem;
+      background: rgba(247,245,242,0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.04em;
+    }
+    .nav-links { display: flex; gap: 2rem; }
+    .nav-links a {
+      font-size: 0.85rem;
+      color: var(--text2);
+      text-decoration: none;
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 130px 2rem 80px;
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text2);
+      font-size: 0.78rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.3rem 0.9rem;
+      border-radius: 100px;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp .6s .1s forwards;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      font-weight: 400;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 1.25rem;
+      opacity: 0;
+      animation: fadeUp .6s .2s forwards;
+    }
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 1rem;
+      color: var(--text2);
+      font-weight: 300;
+      max-width: 580px;
+      margin: 0 auto 0.75rem;
+      opacity: 0;
+      animation: fadeUp .6s .3s forwards;
+    }
+    .hero-authors {
+      font-size: 0.85rem;
+      color: var(--text3);
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeUp .6s .35s forwards;
+    }
+
+    .btn-row {
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      justify-content: center;
+      margin-bottom: 3.5rem;
+      opacity: 0;
+      animation: fadeUp .6s .4s forwards;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all .15s;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-solid {
+      background: var(--text);
+      color: #fff;
+    }
+    .btn-solid:hover { background: #333; transform: translateY(-1px); }
+    .btn-ghost {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      color: var(--text2);
+    }
+    .btn-ghost:hover { border-color: #aaa; color: var(--text); }
+
+    /* ─── TEASER ─── */
+    .teaser-wrap {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 0 2rem;
+      opacity: 0;
+      animation: fadeUp .7s .5s forwards;
+    }
+    .teaser {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 40px rgba(0,0,0,0.06);
+    }
+    .teaser video, .teaser img {
+      width: 100%; display: block;
+    }
+    .teaser-cap {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text3);
+      margin-top: 0.9rem;
+      font-style: italic;
+    }
+
+    /* ─── SECTION ─── */
+    .section {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+    .section-wide {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+    .sep {
+      border: none;
+      border-top: 1px solid var(--border);
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.6rem;
+    }
+    h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(1.5rem, 2.8vw, 2rem);
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      line-height: 1.25;
+      margin-bottom: 1.2rem;
+    }
+    p { color: var(--text2); margin-bottom: 0.9rem; font-weight: 300; }
+    p:last-child { margin-bottom: 0; }
+    strong { font-weight: 500; color: var(--text); }
+
+    /* ─── PIPELINE ─── */
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 2.5rem;
+    }
+    .pipe-card {
+      background: var(--bg2);
+      padding: 1.75rem;
+      transition: background .2s;
+    }
+    .pipe-card:hover { background: #fafaf9; }
+    .pipe-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text3);
+      margin-bottom: 0.4rem;
+    }
+    .pipe-card h3 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+    .pipe-card p { font-size: 0.85rem; margin: 0; }
+
+    @media (max-width: 560px) {
+      .pipeline { grid-template-columns: 1fr; }
+    }
+
+    /* ─── FRAMEWORK IMG ─── */
+    .fw-img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      margin: 2rem 0 0.75rem;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.04);
+    }
+    .fig-cap {
+      font-size: 0.82rem;
+      color: var(--text3);
+      text-align: center;
+      font-style: italic;
+    }
+
+    /* ─── RESULTS TABLE ─── */
+    .notice {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: var(--gold);
+      margin-bottom: 1.75rem;
+    }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    thead { background: #fafaf9; }
+    th {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 500;
+      font-size: 0.78rem;
+      color: var(--text2);
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 0.75rem 1rem;
+      color: var(--text2);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      font-weight: 300;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr.ours td {
+      background: var(--accent-s);
+      font-weight: 500;
+      color: var(--text);
+    }
+    tr.ours td:first-child { color: var(--accent); }
+
+    /* ─── VIDEO GRID ─── */
+    .vgrid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    @media (max-width: 640px) { .vgrid { grid-template-columns: 1fr; } }
+    .vcard {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--bg2);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .vcard:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+      transform: translateY(-2px);
+    }
+    .vcard video, .vcard img {
+      width: 100%; display: block;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+      background: var(--bg);
+    }
+    .vcard-label {
+      padding: 0.6rem 0.85rem;
+      font-size: 0.8rem;
+      color: var(--text2);
+      font-family: 'JetBrains Mono', monospace;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── DATASET ─── */
+    .dset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    @media (max-width: 560px) { .dset-grid { grid-template-columns: 1fr; } }
+    .dset-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      background: var(--bg2);
+    }
+    .dset-card h3 {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 0.6rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .tag {
+      font-size: 0.68rem;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 400;
+    }
+    .tag-pub  { background: #dbeafe; color: #1d4ed8; }
+    .tag-soon { background: #fef3c7; color: #92400e; }
+    .dset-card p { font-size: 0.85rem; }
+    .dset-card a { color: var(--accent); font-size: 0.85rem; text-decoration: none; }
+    .dset-card a:hover { text-decoration: underline; }
+
+    /* ─── BIBTEX ─── */
+    .bib-wrap {
+      position: relative;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .bib-wrap pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text2);
+      line-height: 1.9;
+      overflow-x: auto;
+    }
+    .copy-btn {
+      position: absolute; top: 1rem; right: 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text2);
+      font-size: 0.78rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all .15s;
+    }
+    .copy-btn:hover { border-color: var(--text); color: var(--text); }
+
+    /* ─── FOOTER ─── */
+    footer {
+      text-align: center;
+      padding: 2.5rem 2rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.82rem;
+      color: var(--text3);
+    }
+    footer a { color: var(--text2); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    /* ─── SCROLL REVEAL ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+    .reveal.show { opacity: 1; transform: none; }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-logo">SKD-Net</span>
+  <div class="nav-links">
+    <a href="#abstract">Abstract</a>
+    <a href="#method">Method</a>
+    <a href="#results">Results</a>
+    <a href="#dataset">Dataset</a>
+    <a href="#citation">Citation</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Anonymous Submission &nbsp;·&nbsp; NeurIPS 2025
+  </div>
+
+  <h1>
+    <em>SKD-Net</em>: Skeleton-Guided Latent Diffusion<br>
+    for Human Point Cloud Completion<br>
+    from Sparse mmWave Radar
+  </h1>
+
+  <p class="hero-sub">
+    Recovering dense, topologically correct human point clouds
+    from 50–150 radar points per frame, guided by cross-modal
+    skeleton priors and conditional latent diffusion.
+  </p>
+
+  <p class="hero-authors">Anonymous Authors &nbsp;·&nbsp; Anonymous Institution</p>
+
+  <div class="btn-row">
+    <a href="#" class="btn btn-solid">📄 Paper</a>
+    <a href="https://github.com/skd-net/SKD-Net" class="btn btn-ghost">💻 Code</a>
+    <a href="#dataset" class="btn btn-ghost">🗂️ Dataset</a>
+    <a href="#results" class="btn btn-ghost">📊 Results</a>
+  </div>
+</div>
+
+<!-- TEASER -->
+<div class="teaser-wrap">
+  <div class="teaser">
+    <video autoplay muted loop playsinline>
+      <source src="assets/MMFi_data_demo.mp4" type="video/mp4"/>
+      <img src="assets/SKD-Net_framework.jpg" alt="SKD-Net teaser"/>
+    </video>
+  </div>
+  <p class="teaser-cap">
+    SKD-Net completes dense human point clouds (right) from sparse mmWave radar inputs (left)
+    across diverse actions. &nbsp;<em>Placeholder — own results coming soon.</em>
+  </p>
+</div>
+
+<hr class="sep" style="margin-top:5rem;"/>
+
+<!-- ABSTRACT -->
+<div class="section reveal" id="abstract">
+  <p class="eyebrow">Abstract</p>
+  <h2>From sparse radar signals<br>to complete human shapes</h2>
+  <p>
+    mmWave radar enables non-intrusive, privacy-preserving human sensing under all lighting and
+    weather conditions, but its inherent sparsity (50–150 points per frame) fundamentally limits
+    downstream analysis. Existing point cloud completion methods are designed for dense, rigid-object
+    inputs and fail under the extreme sparsity and non-rigid topology of the human body.
+  </p>
+  <p>
+    We propose <strong>SKD-Net</strong>, a two-path framework that decouples structural alignment
+    from shape completion. <strong>SkelKD</strong> learns cross-modal skeleton joint coordinates
+    from radar observations via attention-based soft aggregation, resolving the spatial
+    misalignment between depth-camera skeletons and radar space. A <strong>PE Encoder</strong>
+    then compresses sparse points into skeleton-aligned latent tokens Z₀.
+    A three-signal <strong>Condition Network</strong> — fusing skeleton GCN topology,
+    skeleton-guided mmWave geometry, and action category — guides a
+    <strong>Dynamic Transformer</strong> to denoise Z_T → Z₀, recovering complete,
+    action-consistent human point clouds.
+  </p>
+  <p>
+    SKD-Net significantly outperforms both deterministic completion baselines (PCN, PoinTr,
+    Snowflake, LAKe-Net) and generative baselines (LION, TIGER) on MM-Fi, while maintaining
+    temporal consistency across frames.
+  </p>
+</div>
+
+<hr class="sep"/>
+
+<!-- METHOD -->
+<div class="section-wide reveal" id="method">
+  <div style="max-width:800px">
+    <p class="eyebrow">Method</p>
+    <h2>Two-path skeleton-guided architecture</h2>
+    <p>
+      Path ① establishes structural priors: SkelKD aligns skeleton joints to radar space,
+      while PE Encoder and Auto-encoder E produce skeleton-aligned latent tokens and
+      coarse geometry, respectively. Path ② performs conditional latent diffusion guided
+      by these priors through a cross-attention Dynamic Transformer.
+    </p>
+  </div>
+
+  <img src="assets/SKD-Net_framework.jpg" alt="SKD-Net Framework" class="fw-img"/>
+  <p class="fig-cap">
+    Figure 1. Overview of SKD-Net. Path ① (left): SkelKD, PE Encoder, Auto-encoder E, Condition Network.
+    Path ② (right): Forward diffusion and Dynamic Transformer reverse denoising.
+  </p>
+
+  <div class="pipeline">
+    <div class="pipe-card">
+      <div class="pipe-num">01</div>
+      <h3>SkelKD</h3>
+      <p>Cross-modal skeleton detector. Refines depth-camera joints using radar observations via PCN encoder and attention-based joint feature aggregation, resolving coordinate system misalignment.</p>
+    </div>
+    <div class="pipe-card">
+      <div class="pipe-num">02</div>
+      <h3>PE Encoder</h3>
+      <p>Compresses variable-length sparse point clouds into fixed 8×120 latent tokens Z₀ via skeleton-anchored cross-attention and VAE reparameterization. Shared decoder for reconstruction.</p>
+    </div>
+    <div class="pipe-card">
+      <div class="pipe-num">03</div>
+      <h3>Condition Network</h3>
+      <p>Fuses skeleton GCN tokens (17), coarse geometry tokens (128), and action category label into a unified 145-token K/V sequence for cross-attention conditioning.</p>
+    </div>
+    <div class="pipe-card">
+      <div class="pipe-num">04</div>
+      <h3>Dynamic Transformer</h3>
+      <p>Denoises Z_T → Z₀ through N cross-attention blocks conditioned on the unified condition tokens. Adaptive LayerNorm modulated jointly by time embedding and action category.</p>
+    </div>
+  </div>
+</div>
+
+<hr class="sep"/>
+
+<!-- RESULTS -->
+<div class="section-wide reveal" id="results">
+  <div style="max-width:800px; margin-bottom:2rem;">
+    <p class="eyebrow">Results</p>
+    <h2>Quantitative & qualitative evaluation</h2>
+    <p>
+      We evaluate on MM-Fi (S08–S10, E01) using generative metrics:
+      MMD-CD ↓ (fidelity), COV-CD ↑ (coverage), 1-NN-CD ↓ (distribution alignment, ideal = 50%).
+    </p>
+  </div>
+
+  <div class="notice">
+    ⚠️&nbsp; Full quantitative results pending experiment completion. Placeholder table shown below.
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th><th>Venue</th><th>Type</th>
+          <th>MMD-CD ↓</th><th>COV-CD ↑</th>
+          <th>1-NN-CD ↓</th><th>1-NN-EMD ↓</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>PCN*</td><td>3DV'18</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>PoinTr*</td><td>ICCV'21</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>Snowflake*</td><td>ICCV'21</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>LAKe-Net*</td><td>CVPR'22</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>LION*</td><td>NeurIPS'22</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>TIGER*</td><td>CVPR'24</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr class="ours">
+          <td>SKD-Net (Ours)</td><td>NeurIPS'25</td><td>Generative</td>
+          <td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:0.78rem; color:var(--text3); margin-top:0.6rem;">
+    * Adapted to mmWave 256-point input.
+  </p>
+
+  <!-- Video comparisons -->
+  <h3 style="font-size:1rem; font-weight:500; margin-top:3rem; margin-bottom:0.4rem;">Qualitative Results</h3>
+  <p style="font-size:0.875rem; margin-bottom:0;">Completion results across action categories. Own results coming soon.</p>
+
+  <div class="vgrid">
+    <div class="vcard">
+      <video autoplay muted loop playsinline>
+        <source src="assets/MMFi_data_demo.mp4" type="video/mp4"/>
+        <img src="assets/SKD-Net_framework.jpg" alt="A27"/>
+      </video>
+      <div class="vcard-label">A27 · Bowing</div>
+    </div>
+    <div class="vcard">
+      <video autoplay muted loop playsinline>
+        <source src="assets/MMFi_data_demo.mp4" type="video/mp4"/>
+        <img src="assets/SKD-Net_framework.jpg" alt="A17"/>
+      </video>
+      <div class="vcard-label">A17 · Waving Hand</div>
+    </div>
+    <div class="vcard">
+      <video autoplay muted loop playsinline>
+        <source src="assets/MMFi_data_demo.mp4" type="video/mp4"/>
+        <img src="assets/SKD-Net_framework.jpg" alt="A22"/>
+      </video>
+      <div class="vcard-label">A22 · Kicking</div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep"/>
+
+<!-- DATASET -->
+<div class="section reveal" id="dataset">
+  <p class="eyebrow">Dataset</p>
+  <h2>Multi-modal human sensing datasets</h2>
+
+  <div class="dset-grid">
+    <div class="dset-card">
+      <h3>MM-Fi <span class="tag tag-pub">Public</span></h3>
+      <p>
+        Large-scale multi-modal dataset with synchronized mmWave, LiDAR, RGB, depth and WiFi CSI.
+        40 subjects · 27 actions · 4 environments · 320K+ frames.
+      </p>
+      <p style="margin-top:0.75rem;">
+        <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">→ Official page</a>
+      </p>
+      <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
+        We use: E01 · S01–S10 · {A03, A12, A13, A17, A19, A22, A26, A27}
+      </p>
+    </div>
+    <div class="dset-card">
+      <h3>OccluRadar-Human <span class="tag tag-soon">Coming Soon</span></h3>
+      <p>
+        Self-collected dataset with paired complete / occluded mmWave point clouds and synchronized
+        3D skeleton annotations. Dual-radar + RealSense D435i setup. Designed for occlusion
+        robustness evaluation.
+      </p>
+      <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
+        To be released upon paper acceptance.
+      </p>
+    </div>
+  </div>
+</div>
+
+<hr class="sep"/>
+
+<!-- CITATION -->
+<div class="section reveal" id="citation">
+  <p class="eyebrow">Citation</p>
+  <h2>Cite this work</h2>
+  <p>If you find SKD-Net useful in your research, please consider citing:</p>
+
+  <div class="bib-wrap">
+    <button class="copy-btn" onclick="copyBib(this)">Copy</button>
+    <pre id="bib">@inproceedings{skdnet2025,
+  title     = {SKD-Net: Skeleton-Guided Latent Diffusion for Human
+               Point Cloud Completion from Sparse mmWave Radar},
+  author    = {Anonymous},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2025}
+}</pre>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <p>Built for anonymous review &nbsp;·&nbsp; NeurIPS 2025</p>
+  <p style="margin-top:0.3rem;">
+    Inspired by <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">MM-Fi</a>
+    &nbsp;·&nbsp;
+    <a href="https://github.com/skd-net/SKD-Net" target="_blank">GitHub</a>
+  </p>
+</footer>
+
+<script>
+  // Copy bibtex
+  function copyBib(btn) {
+    navigator.clipboard.writeText(document.getElementById('bib').textContent).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+
+  // Scroll reveal
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('show');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.07 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
