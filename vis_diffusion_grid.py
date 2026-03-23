@@ -400,14 +400,9 @@ def render_grid(all_pc_lists, all_frame_data, actions,
                        c=color, s=size_c, alpha=alpha_c,
                        depthshade=False, linewidths=0)
 
-            # ── 噪声点（同色，随机散布在更大球内，裁剪到轴范围）──
+            # ── 噪声点（均匀分布填满可视框，无堆积边界）────────
             if n_noise > 0:
-                noise_pts = (rng.standard_normal((n_noise, 3)) * noise_scale * 0.55
-                             + pc.mean(0))
-                # 裁剪到坐标轴范围内，避免溢出导致渲染瑕疵
-                for dim, center in enumerate(mid):
-                    noise_pts[:, dim] = np.clip(
-                        noise_pts[:, dim], center - r * 0.94, center + r * 0.94)
+                noise_pts = rng.uniform(-1, 1, size=(n_noise, 3)) * r * 0.96 + mid
                 alpha_n   = float(np.clip(t * 0.75, 0.0, 0.65))
                 ax.scatter(noise_pts[:,0], noise_pts[:,1], noise_pts[:,2],
                            c=color, s=1.2, alpha=alpha_n,

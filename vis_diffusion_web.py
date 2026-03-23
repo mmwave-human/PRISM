@@ -297,14 +297,12 @@ def _setup_ax(ax, elev, azim, mid, r):
 
 
 def render_step(pc, step_idx, n_steps, ref_pc, out_path,
-                rng, elev=20, azim=-60, dpi=110):
+                rng, color='#4D96FF', elev=20, azim=-60, dpi=110):
     """渲染去噪过程中的某一步（噪声+解码点云混合）。"""
     t       = np.linspace(1.0, 0.0, n_steps)[step_idx]
     mn, mx  = ref_pc.min(0), ref_pc.max(0)
     mid     = (mn+mx)/2
     r       = max((mx-mn).max()/2 * 1.35, 0.3)
-    zlim_lo = ref_pc[:,2].min()
-    zlim_hi = ref_pc[:,2].max()
 
     fig = plt.figure(figsize=(4.2, 4.2), facecolor=BG)
     ax  = fig.add_subplot(111, projection='3d')
@@ -312,25 +310,23 @@ def render_step(pc, step_idx, n_steps, ref_pc, out_path,
 
     n_pts   = pc.shape[0]
     n_noise = int(n_pts * t * 3)
-    n_clean = int(n_pts * (1 - t * 0.85))
+    n_clean = max(1, int(n_pts * (1 - t * 0.85)))
 
     if n_clean > 0:
         idx_c   = rng.choice(n_pts, min(n_clean, n_pts), replace=False)
         pc_c    = pc[idx_c]
-        alpha_c = max(0.08, 1.0 - t * 0.9)
-        s_size  = max(1.5, 6.5 - t * 5)
+        alpha_c = float(np.clip(1.0 - t * 0.85, 0.1, 1.0))
+        s_size  = float(np.clip(6.5 - t * 5.0, 1.5, 6.5))
         ax.scatter(pc_c[:,0], pc_c[:,1], pc_c[:,2],
-                   c=pc_c[:,2], cmap='RdYlGn',
-                   vmin=zlim_lo, vmax=zlim_hi,
-                   s=s_size, alpha=alpha_c,
+                   c=color, s=s_size, alpha=alpha_c,
                    depthshade=False, linewidths=0)
 
     if n_noise > 0:
-        noise_pts = rng.standard_normal((n_noise, 3)) * r * 0.35 + pc.mean(0)
-        noise_pts = np.clip(noise_pts, mid - r * 0.93, mid + r * 0.93)
-        alpha_n   = min(0.68, t * 0.9)
+        # 均匀分布填满可视框，避免 Gaussian clip 堆积成可见边界
+        noise_pts = rng.uniform(-1, 1, size=(n_noise, 3)) * r * 0.96 + mid
+        alpha_n   = float(np.clip(t * 0.75, 0.0, 0.65))
         ax.scatter(noise_pts[:,0], noise_pts[:,1], noise_pts[:,2],
-                   c='#BBBBBB', s=1.5, alpha=alpha_n,
+                   c=color, s=1.2, alpha=alpha_n,
                    depthshade=False, linewidths=0)
 
     plt.tight_layout(pad=0.15)
@@ -443,11 +439,13 @@ def main():
             manifest['t_values'] = [round(v, 4)
                                     for v in np.linspace(1.0, 0.0, actual_n).tolist()]
 
+        action_color = ACTION_COLORS[action]
         print('  → 渲染去噪步...')
         for i, pc in enumerate(pc_list):
             out_path = os.path.join(out_action_dir, f'step_{i:03d}.png')
             render_step(pc, i, actual_n, ref_pc, out_path,
-                        rng, args.elev, args.azim, args.dpi)
+                        rng, color=action_color,
+                        elev=args.elev, azim=args.azim, dpi=args.dpi)
             sys.stdout.write(f'\r     step {i+1}/{actual_n}')
             sys.stdout.flush()
         print()
