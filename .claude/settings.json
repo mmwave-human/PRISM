@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"train_dist.py.*mmfi_vae\")",
+      "Bash(grep epoch:*)"
+    ]
+  }
+}

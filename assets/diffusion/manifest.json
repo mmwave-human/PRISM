@@ -1,0 +1,59 @@
+{
+  "n_steps": 12,
+  "t_values": [
+    1.0,
+    0.9091,
+    0.8182,
+    0.7273,
+    0.6364,
+    0.5455,
+    0.4545,
+    0.3636,
+    0.2727,
+    0.1818,
+    0.0909,
+    0.0
+  ],
+  "actions": [
+    {
+      "id": "A03",
+      "name": "Chest V",
+      "color": "#4D96FF"
+    },
+    {
+      "id": "A12",
+      "name": "Squat",
+      "color": "#FF6B6B"
+    },
+    {
+      "id": "A13",
+      "name": "Raise Hand",
+      "color": "#48BB78"
+    },
+    {
+      "id": "A19",
+      "name": "Pick Up",
+      "color": "#FF9A3C"
+    },
+    {
+      "id": "A22",
+      "name": "Kick",
+      "color": "#9B59B6"
+    },
+    {
+      "id": "A26",
+      "name": "Jump Up",
+      "color": "#D4A017"
+    },
+    {
+      "id": "A27",
+      "name": "Bowing",
+      "color": "#00B4D8"
+    },
+    {
+      "id": "A17",
+      "name": "Wave Hand",
+      "color": "#F72585"
+    }
+  ]
+}
