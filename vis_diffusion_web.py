@@ -388,7 +388,8 @@ def main():
     parser.add_argument('--ckpt',     required=True)
     parser.add_argument('--ae_ckpt',  required=True)
     parser.add_argument('--cfg',      default=CFG_PATH)
-    parser.add_argument('--n_steps',  type=int,   default=12)
+    parser.add_argument('--n_steps',  type=int,   default=0,
+                        help='抽取的快照帧数（0=自动使用 config.sde.sample_N）')
     parser.add_argument('--elev',     type=float, default=20)
     parser.add_argument('--azim',     type=float, default=-60)
     parser.add_argument('--dpi',      type=int,   default=110)
@@ -405,10 +406,14 @@ def main():
     trainer, ae, cfg = load_models(args.cfg, args.ckpt, args.ae_ckpt, device)
     action_map = build_action_map(cfg)
 
-    t_values = np.linspace(1.0, 0.0, args.n_steps).tolist()
+    # 自动使用 config 推理步数（sample_N）作为快照帧数
+    n_steps = args.n_steps if args.n_steps > 0 else cfg.sde.sample_N
+    print(f'  快照帧数: {n_steps}  (config sample_N={cfg.sde.sample_N})')
+
+    t_values = np.linspace(1.0, 0.0, n_steps).tolist()
 
     manifest = {
-        'n_steps': args.n_steps,
+        'n_steps': n_steps,
         't_values': [round(t, 4) for t in t_values],
         'actions': [],
     }
@@ -426,17 +431,24 @@ def main():
         print('  → 加载数据帧...')
         frame_data = load_one_frame(SUBJECT, action, action_map, frame_idx)
 
-        print(f'  → 采样 {args.n_steps} 个时间步...')
-        pc_list = sample_with_steps(trainer, ae, frame_data, args.n_steps, device)
+        print(f'  → 采样 {n_steps} 个时间步...')
+        pc_list = sample_with_steps(trainer, ae, frame_data, n_steps, device)
 
-        ref_pc = pc_list[-1]   # 最终生成帧用作坐标参考
+        actual_n = len(pc_list)   # sample_discrete 可能返回 n_steps+1 帧
+        ref_pc   = pc_list[-1]    # 最终生成帧用作坐标参考
+
+        # 更新 manifest 的帧数（以第一个动作为准）
+        if manifest['n_steps'] != actual_n:
+            manifest['n_steps'] = actual_n
+            manifest['t_values'] = [round(v, 4)
+                                    for v in np.linspace(1.0, 0.0, actual_n).tolist()]
 
         print('  → 渲染去噪步...')
         for i, pc in enumerate(pc_list):
-            out_path = os.path.join(out_action_dir, f'step_{i:02d}.png')
-            render_step(pc, i, args.n_steps, ref_pc, out_path,
+            out_path = os.path.join(out_action_dir, f'step_{i:03d}.png')
+            render_step(pc, i, actual_n, ref_pc, out_path,
                         rng, args.elev, args.azim, args.dpi)
-            sys.stdout.write(f'\r     step {i+1}/{args.n_steps}')
+            sys.stdout.write(f'\r     step {i+1}/{actual_n}')
             sys.stdout.flush()
         print()
 

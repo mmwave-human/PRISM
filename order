@@ -202,5 +202,8 @@ CUDA_VISIBLE_DEVICES=0 python vis_diffusion_grid.py \
 python vis_diffusion_web.py \
     --ckpt   experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_500.pth \
     --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_500.pth \
+    --actions A12 A13 A17 A19 A22 A26 A27
+
     --n_steps 12
+
 

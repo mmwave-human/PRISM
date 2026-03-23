@@ -433,36 +433,14 @@
       overflow: hidden;
       background: var(--bg2);
       box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+      max-width: 560px;
+      margin: 0 auto;
     }
     #diff-img {
       width: 100%; display: block;
       aspect-ratio: 1;
       object-fit: contain;
       background: #F8F8F8;
-    }
-
-    .diff-refs {
-      display: flex; flex-direction: column; gap: 0.75rem;
-    }
-    .diff-ref-card {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      background: var(--bg2);
-    }
-    .diff-ref-card img {
-      width: 100%; display: block;
-      aspect-ratio: 1;
-      object-fit: contain;
-      background: #F8F8F8;
-    }
-    .diff-ref-label {
-      padding: 0.35rem 0.7rem;
-      font-size: 0.72rem;
-      color: var(--text2);
-      font-family: 'JetBrains Mono', monospace;
-      border-top: 1px solid var(--border);
-      text-align: center;
     }
 
     .diff-controls {
@@ -776,21 +754,9 @@
     <button class="act-btn"        data-action="A27" style="--c:#00B4D8">A27 · Bowing</button>
   </div>
 
-  <!-- Viewer layout: main frame + reference thumbnails -->
-  <div class="diff-layout">
-    <div class="diff-main-wrap">
-      <img id="diff-img" src="assets/diffusion/A03/step_00.png" alt="Denoising step"/>
-    </div>
-    <div class="diff-refs">
-      <div class="diff-ref-card">
-        <img id="diff-input-img" src="assets/diffusion/A03/input.png" alt="Radar Input"/>
-        <div class="diff-ref-label">Radar Input</div>
-      </div>
-      <div class="diff-ref-card">
-        <img id="diff-gt-img" src="assets/diffusion/A03/gt.png" alt="LiDAR GT"/>
-        <div class="diff-ref-label">LiDAR GT</div>
-      </div>
-    </div>
+  <!-- Viewer: full-width main frame -->
+  <div class="diff-main-wrap">
+    <img id="diff-img" src="assets/diffusion/A03/step_000.png" alt="Denoising step"/>
   </div>
 
   <!-- Step slider -->
@@ -915,7 +881,7 @@
     let fps           = 1.2;
 
     function imgPath(action, step) {
-      return `assets/diffusion/${action}/step_${String(step).padStart(2,'0')}.png`;
+      return `assets/diffusion/${action}/step_${String(step).padStart(3,'0')}.png`;
     }
 
     function updateLabel(step) {
@@ -935,10 +901,6 @@
       currentAction = action;
       document.querySelectorAll('.act-btn').forEach(b =>
         b.classList.toggle('active', b.dataset.action === action));
-      document.getElementById('diff-input-img').src =
-        `assets/diffusion/${action}/input.png`;
-      document.getElementById('diff-gt-img').src =
-        `assets/diffusion/${action}/gt.png`;
       updateFrame(currentStep);
     }
 
