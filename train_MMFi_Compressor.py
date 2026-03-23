@@ -3,6 +3,11 @@ train_MMFi_Compressor.py
 ========================
 训练 Compressor（VAE 点云编解码器）on MMFi 数据集。
 
+★ 修改记录（class_condition 支持）：
+  - 训练循环：取出 label 并传入 trainer.model(pc, label=label)
+  - _reconstrustion：取出 label 并传入 trainer.model(pc, label=label)
+  - 需配合 config.yaml 中 model.class_condition: true 使用
+
 目录结构：
   experiments/
   └── Compressor_Trainer/
@@ -67,9 +72,10 @@ def main(args, cfg):
             tbar.set_description("Epoch {}".format(epoch))
 
             for data in tbar:
-                # Compressor 只用 LiDAR，不需要 skeleton / mmwave
-                _, pc, _, _ = data
-                pc = pc.to('cuda')
+                # ★ 取出 label（第 4 个元素），传给 Compressor
+                _, pc, _, label = data
+                pc    = pc.to('cuda')
+                label = label.to('cuda')      # ★ label 移到 GPU
 
                 pc_center = pointnet2_utils.furthest_point_sample(
                     pc, cfg.data.tr_max_sample_points).long()
@@ -78,7 +84,8 @@ def main(args, cfg):
                 trainer.model.train()
                 trainer.warm_up(trainer.optimizer, trainer.itr)
 
-                output      = trainer.model(pc, label=None)
+                # ★ 传入 label（class_condition=false 时模型内部会忽略它，兼容）
+                output      = trainer.model(pc, label=label)
                 output_set  = output['set']
                 kls         = output['kls']
                 max_feature = output['max']
@@ -135,15 +142,26 @@ def main(args, cfg):
                 except Exception:
                     print("write log failed")
 
-            # NaN 保护：回退到最近一个 10 的倍数 checkpoint
+            # NaN 保护：回退到最近一个已存在的 checkpoint
             if torch.isnan(loss_meter.avg) or torch.isinf(loss_meter.avg):
-                back_epoch = (trainer.epoch - 10) // 10 * 10
-                ckpt_path = os.path.join(
-                    cfg.log.save_path, f'checkpt_{back_epoch}.pth')
-                if back_epoch > 0 and os.path.exists(ckpt_path):
-                    trainer.resume(epoch=back_epoch, finetune=False,
-                                   strict=True, load_optim=True)
-                    trainer.optimizer.defaults['lr'] = cfg.opt.lr / 2
+                freq = cfg.log.save_epoch_freq
+                # 从当前 epoch 向前找最近的已存在 checkpoint
+                back_epoch = (trainer.epoch - 1) // freq * freq
+                while back_epoch > 0:
+                    ckpt_path = os.path.join(
+                        cfg.log.save_path, f'checkpt_{back_epoch}.pth')
+                    if os.path.exists(ckpt_path):
+                        print(f'  [NaN] 回退到 epoch {back_epoch}，LR 减半')
+                        trainer.resume(epoch=back_epoch, finetune=False,
+                                       strict=True, load_optim=True)
+                        trainer.optimizer.defaults['lr'] = cfg.opt.lr / 2
+                        loss_meter.reset(); kl_loss_meter.reset()
+                        rec_meter.reset(); max_meter.reset()
+                        break
+                    back_epoch -= freq
+                else:
+                    print('  [NaN] 无可用 checkpoint，终止训练')
+                    break
 
             loss_meter.reset()
             kl_loss_meter.reset()
@@ -166,12 +184,17 @@ def _reconstrustion(trainer, test_loader, cfg):
         trainer.model.eval()
         all_ref, all_rec = [], []
         tbar = tqdm(test_loader)
-        for _, pc, _, _ in tbar:
-            pc = pc.to('cuda')
+
+        # ★ 取出 label 并传给模型
+        for _, pc, _, label in tbar:
+            pc    = pc.to('cuda')
+            label = label.to('cuda')          # ★
+
             pc_center = pointnet2_utils.furthest_point_sample(
                 pc, cfg.data.tr_max_sample_points).long()
             pc = index_points(pc, pc_center)
-            output  = trainer.model(pc)
+
+            output  = trainer.model(pc, label=label)   # ★
             rec_pts = output["set"]
             all_rec.append(rec_pts)
             all_ref.append(pc)
@@ -197,7 +220,7 @@ def _reconstrustion(trainer, test_loader, cfg):
 def get_parser():
     parser = argparse.ArgumentParser('MMFi Compressor')
     parser.add_argument("--dataset",        default='mmfi_compressor', type=str)
-    parser.add_argument('--trainer_type',   default='Compressor_Trainer', type=str)  # ★ 正确
+    parser.add_argument('--trainer_type',   default='Compressor_Trainer', type=str)
     parser.add_argument('--gpu',            default=0,     type=int)
     parser.add_argument('--save',           default='experiments', type=str)
     parser.add_argument('--resume',         default=False, type=eval, choices=[True, False])
@@ -213,17 +236,13 @@ def get_parser():
 
 
 def get_config(args):
-    # config 固定放在 experiments/Compressor_Trainer/config.yaml
-    # 运行结果放在带时间戳的子目录下
     path = os.path.join(args.save, args.trainer_type, "config.yaml")
     with open(path, 'r') as f:
         cfg = yaml.load(f, Loader=yaml.FullLoader)
 
     if args.resume and args.run_dir:
-        # resume 时指定已有目录
         cfg['log']['save_path'] = args.run_dir
     else:
-        # 新训练：自动生成时间戳目录
         timestamp = datetime.now().strftime('%Y%m%d%H%M')
         run_name = f"{args.dataset}_{timestamp}"
         cfg['log']['save_path'] = os.path.join(

@@ -1,9 +1,9 @@
 """
-model/AutoEncoderE/Network.py
+model/GeoAE/Network.py
 ==============================
-Auto-encoder E：从稀疏 mmWave 点云提取几何条件信号。
+GeoAE：从稀疏 mmWave 点云提取几何条件信号。
 
-灵感来源：LAKe-Net (CVPR 2022) 的 Auto-encoder E 设计
+灵感来源：LAKe-Net (CVPR 2022) 的 GeoAE 设计
   PCN Encoder：两级 Conv1d，提取逐点特征与全局特征
   SeedGenerator：ConvTranspose1d 将全局特征解卷积为粗糙点云
 
@@ -131,12 +131,12 @@ class SeedGenerator(nn.Module):
 
 
 # ─────────────────────────────────────────────────────────────
-#  AutoEncoderE：对外接口
+#  GeoAE：对外接口
 # ─────────────────────────────────────────────────────────────
 
-class AutoEncoderE(nn.Module):
+class GeoAE(nn.Module):
     """
-    Auto-encoder E：mmWave 稀疏点云 → 粗糙几何条件。
+    GeoAE：mmWave 稀疏点云 → 粗糙几何条件。
 
     输入：  mmwave (B, N, 3)   N ≈ 50~256（mmWave 稀疏点云）
     输出：
@@ -180,7 +180,7 @@ if __name__ == '__main__':
     B, N = 4, 80
     mm = torch.randn(B, N, 3)
 
-    model = AutoEncoderE(feat_dim=256, num_coarse=128)
+    model = GeoAE(feat_dim=256, num_coarse=128)
     coarse, gfeat = model(mm)
 
     print(f"mmwave input  : {mm.shape}")      # (4, 80, 3)

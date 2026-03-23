@@ -296,6 +296,44 @@ def compute_MMD_metrics(sample_pcs, ref_pcs, batch_size, accelerated_cd=True, ac
     return results
 
 
+def compute_paired_CD(sample_pcs, ref_pcs, batch_size, accelerated_cd=True):
+    """
+    Per-sample paired Chamfer Distance: CD(sample_pcs[i], ref_pcs[i]).
+
+    sample_pcs[i] 和 ref_pcs[i] 必须来自同一个条件输入（即 LDT 条件生成后的配对样本）。
+    这是评估条件点云补全模型的核心指标，区别于 1-NNA/MMD/COV 这类分布级指标。
+
+    Args:
+        sample_pcs : (N, M, 3) 生成点云
+        ref_pcs    : (N, M, 3) 对应的 GT 点云
+        batch_size : 每批处理的样本数
+        accelerated_cd: 使用 CUDA 加速版本（若可用）
+
+    Returns:
+        cd_all  : (N,) 每个样本的 CD 值
+        mean_cd : float，所有样本的均值
+    """
+    N = sample_pcs.shape[0]
+    assert sample_pcs.shape[0] == ref_pcs.shape[0], \
+        f"sample/ref 数量不匹配: {sample_pcs.shape[0]} vs {ref_pcs.shape[0]}"
+    sample_pcs = sample_pcs.cuda()
+    ref_pcs    = ref_pcs.cuda()
+
+    cd_lst = []
+    for b_start in range(0, N, batch_size):
+        b_end = min(N, b_start + batch_size)
+        s = sample_pcs[b_start:b_end]
+        r = ref_pcs[b_start:b_end]
+        if accelerated_cd:
+            dl, dr = distChamferCUDA(s, r)
+        else:
+            dl, dr = distChamfer(s, r)
+        cd_lst.append(dl.mean(dim=1) + dr.mean(dim=1))   # (B,)
+
+    cd_all = torch.cat(cd_lst)                            # (N,)
+    return cd_all, cd_all.mean().item()
+
+
 def compute_CD_metrics(sample_pcs, ref_pcs, batch_size):
     results = {}
 

@@ -395,6 +395,131 @@
     }
     .copy-btn:hover { border-color: var(--text); color: var(--text); }
 
+    /* ─── DIFFUSION VIEWER ─── */
+    .action-tabs {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      margin-bottom: 1.5rem;
+    }
+    .act-btn {
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      border: 1.5px solid var(--c, #ccc);
+      background: transparent;
+      color: var(--c, #555);
+      font-size: 0.8rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .act-btn:hover { background: color-mix(in srgb, var(--c, #ccc) 12%, transparent); }
+    .act-btn.active {
+      background: var(--c, #ccc);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .diff-layout {
+      display: grid;
+      grid-template-columns: 1fr 180px;
+      gap: 1rem;
+      align-items: start;
+    }
+    @media (max-width: 640px) { .diff-layout { grid-template-columns: 1fr; } }
+
+    .diff-main-wrap {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg2);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+    }
+    #diff-img {
+      width: 100%; display: block;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #F8F8F8;
+    }
+
+    .diff-refs {
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .diff-ref-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--bg2);
+    }
+    .diff-ref-card img {
+      width: 100%; display: block;
+      aspect-ratio: 1;
+      object-fit: contain;
+      background: #F8F8F8;
+    }
+    .diff-ref-label {
+      padding: 0.35rem 0.7rem;
+      font-size: 0.72rem;
+      color: var(--text2);
+      font-family: 'JetBrains Mono', monospace;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .diff-controls {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .diff-ctrl-label {
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+    #diff-slider {
+      flex: 1;
+      appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      outline: none;
+      cursor: pointer;
+    }
+    #diff-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+
+    .diff-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 0.75rem;
+      flex-wrap: wrap; gap: 0.5rem;
+    }
+    #diff-t-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--text2);
+    }
+    .diff-play-row {
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .speed-btn {
+      padding: 0.22rem 0.55rem;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--text2);
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .speed-btn.active { background: var(--accent-s); border-color: var(--accent); color: var(--accent); }
+
     /* ─── FOOTER ─── */
     footer {
       text-align: center;
@@ -429,6 +554,7 @@
     <a href="#abstract">Abstract</a>
     <a href="#method">Method</a>
     <a href="#results">Results</a>
+    <a href="#diffusion">Diffusion</a>
     <a href="#dataset">Dataset</a>
     <a href="#citation">Citation</a>
   </div>
@@ -627,6 +753,72 @@
 
 <hr class="sep"/>
 
+<!-- DIFFUSION PROCESS VIEWER -->
+<div class="section-wide reveal" id="diffusion">
+  <div style="max-width:800px; margin-bottom:1.75rem;">
+    <p class="eyebrow">Diffusion Process</p>
+    <h2>Interactive denoising visualization</h2>
+    <p>
+      Select an action, then drag the slider to watch the latent SDE reverse process
+      — from pure Gaussian noise to a complete human point cloud, step by step.
+    </p>
+  </div>
+
+  <!-- Action selector -->
+  <div class="action-tabs" id="action-tabs">
+    <button class="act-btn active" data-action="A03" style="--c:#4D96FF">A03 · Chest V</button>
+    <button class="act-btn"        data-action="A12" style="--c:#FF6B6B">A12 · Squat</button>
+    <button class="act-btn"        data-action="A13" style="--c:#48BB78">A13 · Raise Hand</button>
+    <button class="act-btn"        data-action="A17" style="--c:#F72585">A17 · Wave Hand</button>
+    <button class="act-btn"        data-action="A19" style="--c:#FF9A3C">A19 · Pick Up</button>
+    <button class="act-btn"        data-action="A22" style="--c:#9B59B6">A22 · Kick</button>
+    <button class="act-btn"        data-action="A26" style="--c:#D4A017">A26 · Jump Up</button>
+    <button class="act-btn"        data-action="A27" style="--c:#00B4D8">A27 · Bowing</button>
+  </div>
+
+  <!-- Viewer layout: main frame + reference thumbnails -->
+  <div class="diff-layout">
+    <div class="diff-main-wrap">
+      <img id="diff-img" src="assets/diffusion/A03/step_00.png" alt="Denoising step"/>
+    </div>
+    <div class="diff-refs">
+      <div class="diff-ref-card">
+        <img id="diff-input-img" src="assets/diffusion/A03/input.png" alt="Radar Input"/>
+        <div class="diff-ref-label">Radar Input</div>
+      </div>
+      <div class="diff-ref-card">
+        <img id="diff-gt-img" src="assets/diffusion/A03/gt.png" alt="LiDAR GT"/>
+        <div class="diff-ref-label">LiDAR GT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step slider -->
+  <div class="diff-controls">
+    <span class="diff-ctrl-label">Noise t=1.0</span>
+    <input type="range" id="diff-slider" min="0" max="11" value="0" step="1"/>
+    <span class="diff-ctrl-label">Generated</span>
+  </div>
+
+  <!-- Status + play controls -->
+  <div class="diff-footer">
+    <span id="diff-t-label">t = 1.00  ·  Step 1 / 12</span>
+    <div class="diff-play-row">
+      <button id="diff-play-btn" class="btn btn-ghost" style="padding:0.38rem 0.9rem; font-size:0.8rem">▶ Play</button>
+      <button class="speed-btn active" data-fps="1.2">1×</button>
+      <button class="speed-btn"       data-fps="2.4">2×</button>
+      <button class="speed-btn"       data-fps="0.6">0.5×</button>
+    </div>
+  </div>
+
+  <p style="font-size:0.78rem; color:var(--text3); margin-top:1rem;">
+    Images generated by running <code style="font-size:0.75rem; background:var(--bg); padding:0.1em 0.3em; border-radius:3px;">vis_diffusion_web.py</code>
+    with the trained PRISM checkpoint. Each step decodes a latent z obtained at that SDE timestep via the Compressor.
+  </p>
+</div>
+
+<hr class="sep"/>
+
 <!-- DATASET -->
 <div class="section reveal" id="dataset">
   <p class="eyebrow">Dataset</p>
@@ -698,6 +890,103 @@
       setTimeout(() => btn.textContent = 'Copy', 2000);
     });
   }
+
+  // ── Diffusion viewer ──────────────────────────────────────
+  (function() {
+    // Load manifest.json for n_steps; fall back to 12 if not yet generated
+    let N_STEPS = 12;
+    let tValues = Array.from({length: N_STEPS}, (_, i) =>
+      parseFloat((1 - i / (N_STEPS - 1)).toFixed(4)));
+
+    fetch('assets/diffusion/manifest.json')
+      .then(r => r.json())
+      .then(m => {
+        N_STEPS = m.n_steps;
+        tValues = m.t_values;
+        document.getElementById('diff-slider').max = N_STEPS - 1;
+        updateLabel(currentStep);
+      })
+      .catch(() => { /* no manifest yet — use defaults */ });
+
+    let currentAction = 'A03';
+    let currentStep   = 0;
+    let playing       = false;
+    let playTimer     = null;
+    let fps           = 1.2;
+
+    function imgPath(action, step) {
+      return `assets/diffusion/${action}/step_${String(step).padStart(2,'0')}.png`;
+    }
+
+    function updateLabel(step) {
+      const t = tValues[Math.min(step, tValues.length - 1)];
+      document.getElementById('diff-t-label').textContent =
+        `t = ${parseFloat(t).toFixed(2)}  ·  Step ${step + 1} / ${N_STEPS}`;
+    }
+
+    function updateFrame(step) {
+      currentStep = Math.max(0, Math.min(step, N_STEPS - 1));
+      document.getElementById('diff-img').src = imgPath(currentAction, currentStep);
+      document.getElementById('diff-slider').value = currentStep;
+      updateLabel(currentStep);
+    }
+
+    function setAction(action) {
+      currentAction = action;
+      document.querySelectorAll('.act-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.action === action));
+      document.getElementById('diff-input-img').src =
+        `assets/diffusion/${action}/input.png`;
+      document.getElementById('diff-gt-img').src =
+        `assets/diffusion/${action}/gt.png`;
+      updateFrame(currentStep);
+    }
+
+    function stopPlay() {
+      playing = false;
+      clearInterval(playTimer);
+      document.getElementById('diff-play-btn').innerHTML = '▶ Play';
+    }
+
+    function startPlay() {
+      playing = true;
+      document.getElementById('diff-play-btn').innerHTML = '⏸ Pause';
+      updateFrame(0);
+      playTimer = setInterval(() => {
+        if (currentStep >= N_STEPS - 1) { stopPlay(); return; }
+        updateFrame(currentStep + 1);
+      }, 1000 / fps);
+    }
+
+    // Action tabs
+    document.getElementById('action-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.act-btn');
+      if (!btn) return;
+      stopPlay();
+      setAction(btn.dataset.action);
+    });
+
+    // Slider
+    document.getElementById('diff-slider').addEventListener('input', e => {
+      stopPlay();
+      updateFrame(parseInt(e.target.value));
+    });
+
+    // Play / pause
+    document.getElementById('diff-play-btn').addEventListener('click', () => {
+      playing ? stopPlay() : startPlay();
+    });
+
+    // Speed buttons
+    document.querySelectorAll('.speed-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        fps = parseFloat(btn.dataset.fps);
+        document.querySelectorAll('.speed-btn').forEach(b =>
+          b.classList.toggle('active', b === btn));
+        if (playing) { stopPlay(); startPlay(); }
+      });
+    });
+  })();
 
   // Scroll reveal
   const io = new IntersectionObserver((entries) => {

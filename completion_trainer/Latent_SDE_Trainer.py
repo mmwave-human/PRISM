@@ -10,11 +10,31 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam
 from tqdm import tqdm
 from diffusion.diffusion_continuous import DiffusionVPSDE, DiffusionSubVPSDE, DiffusionVESDE
-from evaluation import compute_all_metrics
+from evaluation import compute_all_metrics, compute_paired_CD
 from tools.utils import EMA, normalize_point_clouds
 from tools.vis_utils import render_3D
 from trainer.base import BaseTrainer
 from model.Compressor.layers import index_points
+
+
+# ── 逐样本归一化（eval 用）──────────────────────────────────
+def _normalize_pc(pc):
+    """
+    对每个样本独立做零均值 + 单位最大半径归一化。
+    pc: (B, N, 3) → (B, N, 3)
+
+    与 val_sample.py 中 normalize_point_clouds 逻辑一致：
+      centroid = mean(pc)
+      pc = (pc - centroid) / max_dist
+    确保 smp 和 ref 在同一归一化空间内比较。
+    """
+    centroid = torch.mean(pc, dim=1, keepdim=True)           # (B, 1, 3)
+    pc = pc - centroid
+    furthest = torch.amax(
+        torch.sqrt(torch.sum(pc ** 2, dim=-1, keepdim=True)),
+        dim=1, keepdim=True)                                  # (B, 1, 1)
+    pc = pc / (furthest + 1e-8)
+    return pc
 
 
 class Trainer(BaseTrainer):
@@ -169,20 +189,21 @@ class Trainer(BaseTrainer):
         self.optimizer.swap_parameters_with_ema(store_params_in_ema=True)
         return sample, eps
 
-    # ★ CHANGED: 增加 autoencoder_e 参数，condition 改用 coarse_pts
-    def valsample(self, test_loader, val_cate=0, vis=False, autoencoder_e=None):
+    # ★ CHANGED: 增加 geo_ae 参数，condition 改用 coarse_pts
+    #   + 修复：compute_all_metrics 前逐样本归一化（与 val_sample.py 对齐）
+    def valsample(self, test_loader, val_cate=0, vis=False, geo_ae=None):
         """
-        autoencoder_e: AutoEncoderE 实例（可选）。
+        geo_ae: GeoAE 实例（可选）。
           - 传入时：mmwave → coarse_pts，condition = {'skeleton', 'coarse'}
           - 不传入时：降级为仅骨骼条件，condition = {'skeleton'}
         """
         with torch.no_grad():
             self.model.eval()
             self.compressor.eval()
-            if autoencoder_e is not None:
-                autoencoder_e.eval()
+            if geo_ae is not None:
+                geo_ae.eval()
 
-            all_ref, all_inp, all_smp = [], [], []
+            all_ref, all_inp, all_smp, all_labels = [], [], [], []
             use_time = 0.
             tbar = tqdm(test_loader)
 
@@ -199,12 +220,12 @@ class Trainer(BaseTrainer):
                 ref_pts = index_points(pc, pc_center)
                 pc_part = index_points(pc_part, pc_part_center)
 
-                # ★ 构建 condition：优先使用 Auto-encoder E 的粗糙点云
-                if autoencoder_e is not None:
-                    coarse_pts, _ = autoencoder_e(pc_part)  # (B, 128, 3)
+                # ★ 构建 condition：优先使用 GeoAE 的粗糙点云
+                if geo_ae is not None:
+                    coarse_pts, _ = geo_ae(pc_part)  # (B, 128, 3)
                     condition = {'skeleton': skeleton, 'coarse': coarse_pts}
                 else:
-                    # 降级：仅骨骼条件（Auto-encoder E 未提供时）
+                    # 降级：仅骨骼条件（GeoAE 未提供时）
                     condition = {'skeleton': skeleton}
 
                 T = time.time()
@@ -217,13 +238,23 @@ class Trainer(BaseTrainer):
                 all_inp.append(pc_part)
                 all_smp.append(smp_pts)
                 all_ref.append(ref_pts)
+                all_labels.append(label.cpu())
 
-            smp = torch.cat(all_smp, dim=0)
-            ref = torch.cat(all_ref, dim=0)
-            inp = torch.cat(all_inp, dim=0)
+            smp    = torch.cat(all_smp,    dim=0)
+            ref    = torch.cat(all_ref,    dim=0)
+            inp    = torch.cat(all_inp,    dim=0)
+            labels = torch.cat(all_labels, dim=0)   # (N,) CPU
 
             print("Sample rate: %.8f " % (smp.shape[0] / use_time))
 
+            # ── 诊断打印：归一化前的数值范围 ────────────────────
+            print("[DIAG eval] BEFORE normalize:")
+            print(f"  ref  range: [{ref.min().item():.4f}, {ref.max().item():.4f}]  "
+                  f"mean_norm: {torch.sqrt((ref**2).sum(-1)).mean().item():.4f}")
+            print(f"  smp  range: [{smp.min().item():.4f}, {smp.max().item():.4f}]  "
+                  f"mean_norm: {torch.sqrt((smp**2).sum(-1)).mean().item():.4f}")
+
+            # ── 保存原始（未归一化）的 npy，以便可视化 ───────────
             np.save(os.path.join(
                 self.cfg.log.save_path, 'smp_ep%d' % self.epoch + ".npy"),
                 smp.detach().cpu().numpy())
@@ -234,6 +265,18 @@ class Trainer(BaseTrainer):
                 self.cfg.log.save_path, 'inp_ep%d' % self.epoch + ".npy"),
                 inp.detach().cpu().numpy())
 
+            # ★ 核心修复：逐样本归一化后再计算指标
+            #   与 val_sample.py 中 normalize_point_clouds() 逻辑一致：
+            #   每个点云独立减去质心、除以最大半径，消除系统性偏移
+            smp = _normalize_pc(smp)
+            ref = _normalize_pc(ref)
+
+            print("[DIAG eval] AFTER normalize:")
+            print(f"  ref  range: [{ref.min().item():.4f}, {ref.max().item():.4f}]  "
+                  f"mean_norm: {torch.sqrt((ref**2).sum(-1)).mean().item():.4f}")
+            print(f"  smp  range: [{smp.min().item():.4f}, {smp.max().item():.4f}]  "
+                  f"mean_norm: {torch.sqrt((smp**2).sum(-1)).mean().item():.4f}")
+
             if vis:
                 vis_smp = smp.detach().cpu().numpy()
                 path = os.path.join(self.cfg.log.save_path, "vis")
@@ -242,11 +285,27 @@ class Trainer(BaseTrainer):
                 render_3D(path=os.path.join(self.cfg.log.save_path, "vis"),
                           sample=vis_smp)
 
+            # ── per-sample paired CD（条件生成的核心评估指标）──────
+            _ACTION_NAMES = {
+                0: 'A03', 1: 'A12', 2: 'A13', 3: 'A17',
+                4: 'A19', 5: 'A22', 6: 'A26', 7: 'A27',
+            }
+            cd_per_sample, rec_cd_mean = compute_paired_CD(smp, ref, batch_size=64)
+            print(f"\n[rec-CD] 配对 Chamfer Distance（条件生成，逐样本归一化后）")
+            print(f"  全部均值 rec-CD = {rec_cd_mean:.6f}")
+            for cls_idx in range(8):
+                mask = (labels == cls_idx)
+                if mask.sum() > 0:
+                    mean_cls = cd_per_sample[mask.cuda()].mean().item()
+                    name = _ACTION_NAMES.get(cls_idx, str(cls_idx))
+                    print(f"    {name} (n={mask.sum():3d}) : {mean_cls:.6f}")
+
             gen_res = compute_all_metrics(smp, ref, batch_size=64)
 
         all_res = {
             ("val/gen/%s" % k): (v if isinstance(v, float) else v.item())
             for k, v in gen_res.items()}
+        all_res["val/gen/rec-CD"] = rec_cd_mean
         print("Validation Sample (unit) Epoch:%d " % self.epoch, gen_res)
         return all_res
 

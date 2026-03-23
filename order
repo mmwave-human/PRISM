@@ -1,4 +1,6 @@
+nvidia-smi
 conda activate LDT
+conda activate SKD-Net
 python -u train_Compressor.py --dataset airplane
 python train_Completion_Compressor.py --dataset plane
 python train_Completion_Latent_Diffusion.py --dataset plane --resume False
@@ -119,11 +121,19 @@ tmux ls
 # skelkd: 1 windows (created Tue Mar  3 20:30:00 2026)
 
 # 连接到某个 session
+tmux new -s compressor
+
+tmux attach -t mmPoint
+tmux attach -t PCN
+tmux attach -t PoinTr
 tmux attach -t compressor
 tmux attach -t diffusion
 tmux attach -t skelkd
 
+nvidia-smi
 
+CUDA_VISIBLE_DEVICES=1 python train_MMFi_Compressor.py
+CUDA_VISIBLE_DEVICES=2 python train_SkelKD.py
 # 退出时按 Ctrl+B D 脱离（不要直接关窗口，否则进程会停）
 
 
@@ -134,15 +144,15 @@ python vis_skelkd_animation.py \
     --subject S01 --action A13 --start 100 --end 180
 
 # 批量生成训练集全部 8 个动作
-python vis_skelKD_animation.py \
-    --ckpt experiments/SkelKD/mmfi_skelkd_202603071844/checkpt_2000.pth \
-    --save_dir experiments/SkelKD/mmfi_skelkd_202603071844 \
-    --all_actions --subject S01 --end 100
+python vis_skelkd_animation.py \
+    --ckpt experiments/SkelKD/mmfi_skelkd_202603151358/checkpt_best.pth \
+    --save_dir experiments/SkelKD/mmfi_skelkd_202603151358 \
+    --all_actions --subject S01 --end 80
 
 # 批量 + 同时跑训练集受试者 S01 和验证集受试者 S08
 python vis_skelkd_animation.py \
-    --ckpt experiments/SkelKD/mmfi_skelkd_202603061614/checkpt_2000.pth \
-    --save_dir experiments/SkelKD/mmfi_skelkd_202603061614 \
+    --ckpt experiments/SkelKD/mmfi_skelkd_202603151358/checkpt_best.pth \
+    --save_dir experiments/SkelKD/mmfi_skelkd_202603151358 \
     --all_actions --subject S01 S08 --end 60
 
 
@@ -152,19 +162,44 @@ python vis_ldt_animation.py \
     --cfg experiments/Latent_Diffusion_Trainer/config.yaml \
     --ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/checkpt_1600.pth \
     --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/autoencoder_e_1600.pth \
-    --action A27 --subject S01 --start 100 --end 180 --fmt mp4 \
+    --action A27 --subject S01 --start 150 --end 180 --fmt mp4 \
     --save_dir experiments/Latent_Diffusion_Trainer/mmfi_202603061327
 
 # 批量生成训练集全部 8 个动作
 python vis_ldt_animation.py \
     --cfg experiments/Latent_Diffusion_Trainer/config.yaml \
-    --ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603071950/checkpt_900.pth \
-    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603071950/autoencoder_e_900.pth \
-    --all_actions --subject S01 --end 100 --fmt mp4 \
-    --save_dir experiments/Latent_Diffusion_Trainer/mmfi_202603071950
+    --ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_1100.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_1100.pth \
+    --all_actions --subject S01 --start 120 --end 180 --fmt mp4 \
+    --save_dir experiments/Latent_Diffusion_Trainer/mmfi_202603151358
 
 # 批量 + 多受试者（S01 训练集 + S08 验证集对比）
 python vis_ldt_animation.py \
     --ckpt  experiments/Latent_Diffusion_Trainer/mmfi_202603061327/checkpt_1600.pth \
     --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603061327/autoencoder_e_1600.pth \
     --all_actions --subject S01 S08 --end 60
+
+
+
+python diagnose_compressor_latent.py \
+    --ckpt experiments/Compressor_Trainer/mmfi_compressor_202603032012/checkpt_best.pth \
+    --data_root data/MMFi/E01 --subject S01 --n_frames 40 \
+    --save_dir experiments/Compressor_Trainer/diagnosis_v2
+
+cd /home/hjc/Desktop/SKD-Net && python eval_ldt.py \
+    --run_dir experiments/Latent_Diffusion_Trainer/mmfi_202603091939 \
+    --resume_epoch 2000
+
+
+
+CUDA_VISIBLE_DEVICES=0 python vis_diffusion_grid.py \
+    --ckpt   experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_500.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_500.pth \
+    --n_steps 6 \
+    --out assets/diffusion_grid.png \
+    --dpi 200
+
+python vis_diffusion_web.py \
+    --ckpt   experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_500.pth \
+    --ae_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_500.pth \
+    --n_steps 12

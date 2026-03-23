@@ -313,13 +313,10 @@ class MMFiViPCDataset(Dataset):
 
         # Bug 修复②：用与 LiDAR 相同的 shift/scale 归一化
         # 使骨骼关节落在与点云相同的归一化空间（约 [-1, 1]）
+        # 注意：必须用 LiDAR 的 shift/scale，而非骨骼自身的，
+        # 否则弯腰/鞠躬等动作骨骼质心与 LiDAR 质心不同，高度方向会错位。
         if self.normalize:
-            skel_center = skel_raw.mean(axis=0, keepdims=True)
-            skel_scale = max(
-                np.max(np.sqrt(((skel_raw - skel_center) ** 2).sum(1))),
-                1e-8
-            )
-            skel_raw, _, _ = _normalize(skel_raw)
+            skel_raw = ((skel_raw - shift) / scale).astype(np.float32)
 
         skeleton = torch.from_numpy(skel_raw.astype(np.float32)).float()   # (17, 3)
 
