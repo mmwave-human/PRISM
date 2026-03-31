@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(pkill -f \"train_dist.py.*mmfi_vae\")",
-      "Bash(grep epoch:*)"
+      "Bash(grep epoch:*)",
+      "Bash(grep -l \"class\\\\|def\" /home/hjc/Desktop/SKD-Net/model/functional/*.py)"
     ]
   }
 }

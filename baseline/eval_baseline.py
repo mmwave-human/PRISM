@@ -26,7 +26,7 @@ sys.path.insert(0, SCRIPT_DIR)
 from evaluation.evaluation_metrics import compute_CD_metrics, compute_paired_CD
 
 # ── Evaluation protocol (must match SKD-Net) ──────────────────────────────────
-DATA_ROOT    = '/home/hjc/Desktop/SKD-Net/data/MMFi/E01'
+DATA_ROOT    = '/home/hjc/Desktop/PRISM/data/MMFi/E01'
 VAL_SUBJECTS = ['S08', 'S09', 'S10']
 ACTIONS      = ['A03', 'A12', 'A13', 'A17', 'A19', 'A22', 'A26', 'A27']
 CACHE_ROOT   = os.path.join(SCRIPT_DIR, 'mmPoint/data_cache')

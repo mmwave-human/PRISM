@@ -1,39 +1,51 @@
-# SKD-Net: Skeleton-Guided Latent Diffusion for Human Point Cloud Completion from Sparse mmWave Radar
+# PRISM: Human Point Cloud Reconstruction via Skeleton-Guided Diffusion from mmWave Radar
 
 <p align="center">
-  <a href="https://skd-net.github.io/SKD-Net">Project Page</a> •
+  <a href="https://mmwave-human.github.io/PRISM">Project Page</a> •
   <a href="#">Paper (Anonymous)</a> •
-  <a href="https://github.com/skd-net/SKD-Net">Code</a>
+  <a href="https://github.com/mmwave-human/PRISM">Code</a>
 </p>
 
 <p align="center">
   <img src="assets/SKD-Net_framework.jpg" width="900"/>
 </p>
 
-> **SKD-Net** proposes a skeleton-guided latent diffusion framework for completing dense human point clouds from sparse mmWave radar observations (50–150 points/frame). By leveraging cross-modal skeleton alignment and a three-path conditional diffusion network, SKD-Net recovers topologically correct, temporally consistent human point clouds from extremely sparse radar inputs.
+> **PRISM** (**P**oint cloud **R**econstruction v**I**a **S**keleton-guided diffusion from **M**mWave radar) is a conditional latent diffusion framework for complete human point cloud reconstruction from sparse mmWave radar observations (50–150 points/frame). PRISM recovers topologically correct, action-specific, temporally consistent human point clouds guided by cross-modal skeleton alignment and a 145-token dual-path condition.
 
 ---
 
 ## 📋 Abstract
 
-mmWave radar enables non-intrusive, all-weather human sensing, but its inherent sparsity (50–150 points per frame) severely limits downstream pose estimation and action recognition tasks. Existing point cloud completion methods are designed for dense inputs of rigid objects and fail under the extreme sparsity and non-rigid topology of human bodies.
+mmWave radar enables all-weather, non-contact human sensing, yet its inherent sparsity of 50–150 reflections per frame severely limits downstream body analysis. Existing point cloud completion methods target dense rigid-object inputs and fundamentally fail under the combination of extreme sparsity and non-rigid topological variability of human bodies.
 
-We propose **SKD-Net**, a skeleton-guided latent diffusion framework for human point cloud completion from sparse mmWave radar. SKD-Net consists of two parallel paths: (①) **SkelKD** refines cross-modal skeleton joint coordinates from mmWave observations via attention-based soft aggregation; a **PE Encoder** compresses the sparse point cloud into skeleton-aligned latent tokens Z₀. (②) A **Condition Network** fuses three conditioning signals — skeleton GCN topology (17 tokens), skeleton-guided mmWave aggregation (17 tokens), and action category embedding — into a unified K/V sequence, which guides a **Dynamic Transformer** to denoise latent tokens and reconstruct a complete human point cloud via a learned **Decoder**.
+We present **PRISM**, a conditional latent diffusion framework for human point cloud reconstruction from sparse mmWave radar. SkelKD aligns noisy depth-camera skeletons to the radar coordinate frame via cross-modal attention; HierVAE then encodes the sparse input into compact 8×120 latent tokens through a six-level hierarchical VAE. GeoAE simultaneously extracts a stable 128-point coarse geometric proxy from the raw mmWave cloud; together with skeleton topology via a graph convolutional network and action class label, this assembles a 145-token conditioning sequence that guides a Dynamic Transformer to denoise the latent representation under a VP-SDE framework.
 
-Experiments on MM-Fi demonstrate that SKD-Net significantly outperforms general completion baselines (PCN, PoinTr, Snowflake) and generative baselines (LION, TIGER) on MMD-CD, COV-CD, and 1-NN-CD metrics, while producing temporally consistent human point cloud sequences.
+On MM-Fi, PRISM significantly outperforms point cloud completion and generative baselines on MMD-CD, COV-CD, and 1-NN-CD metrics while producing temporally consistent, action-specific human point cloud sequences. We further contribute **OccluRadar-Human**, the first dataset providing paired complete and occluded mmWave captures with frame-level 3-D skeleton ground truth.
 
 ---
 
-## 🏗️ Framework
+## 🏗️ Architecture
 
-<p align="center">
-  <img src="assets/SKD-Net_framework.jpg" width="900"/>
-</p>
+```
+mmWave PC ──→ [GeoAE] ──→ Coarse C (128 pts)
+    │                              ↓
+    └──→ [SkelKD] ← Depth Skel ──→ P̂ (17 joints)
+              │                    ↓
+         [HierVAE Enc]    [Condition Network]
+              ↓                    ↓
+             Z₀   ──VP-SDE──→  Z_t + KV(145 tok)
+                                   ↓
+                        [Dynamic Transformer ×6]
+                                   ↓
+                        [HierVAE Dec] → X_f (256 pts)
+```
 
-The framework consists of two stages:
-
-- **① Skeleton Alignment**: SkelKD refines skeleton joints from mmWave point clouds. PE Encoder compresses the sparse input into structured latent tokens via skeleton-anchored cross-attention. Auto-encoder E generates coarse geometric points from the raw mmWave input.
-- **② Completion Refinement**: Forward diffusion gradually adds noise to Z₀. The Dynamic Transformer denoises Z_T back to Z₀ conditioned on skeleton GCN features, coarse geometry tokens, and action category label. The Decoder reconstructs the final complete point cloud x_f.
+**Key modules:**
+- **SkelKD**: Cross-modal attention that refines depth-camera skeletons to radar coordinate frame without explicit calibration
+- **HierVAE**: 6-level hierarchical VAE encoding sparse point clouds to 8×120 structured latent tokens
+- **GeoAE**: Geometric auto-encoder producing 128 stable coarse points as geometric proxy
+- **Condition Network**: Dual-path 145-token K/V sequence (17 skeleton GCN tokens + 128 coarse geometry tokens + action label)
+- **Dynamic Transformer**: 6-block denoising network with VP-SDE and AdaLayerNorm conditioning
 
 ---
 
@@ -41,18 +53,16 @@ The framework consists of two stages:
 
 ### MM-Fi
 
-We use the [MM-Fi dataset](https://ntu-aiot-lab.github.io/mm-fi) as our primary benchmark. MM-Fi provides synchronized multi-modal human sensing data including mmWave radar point clouds, LiDAR point clouds, and 3D skeleton joint annotations.
+We use the [MM-Fi dataset](https://ntu-aiot-lab.github.io/mm-fi) as our primary benchmark.
 
-**Download**: Apply for access at the [official MM-Fi page](https://ntu-aiot-lab.github.io/mm-fi).
-
-**Experimental protocol used in this work**:
+**Experimental protocol:**
 
 | Split | Subjects | Actions |
 |-------|----------|---------|
 | Train | S01–S07  | A03, A12, A13, A17, A19, A22, A26, A27 |
 | Val   | S08–S10  | A03, A12, A13, A17, A19, A22, A26, A27 |
 
-**Action descriptions**:
+**Action descriptions:**
 
 | ID  | Description            | ID  | Description       |
 |-----|------------------------|-----|-------------------|
@@ -61,7 +71,7 @@ We use the [MM-Fi dataset](https://ntu-aiot-lab.github.io/mm-fi) as our primary 
 | A13 | Raising hand (left)    | A26 | Jumping up        |
 | A17 | Waving hand (left)     | A27 | Bowing            |
 
-**Expected directory structure**:
+**Expected directory structure:**
 ```
 data/
 └── MMFi/
@@ -70,14 +80,14 @@ data/
         │   ├── A03/
         │   │   ├── mmwave/       # raw .bin files (TI IWR6843 UART format)
         │   │   ├── lidar/        # .npy point clouds
-        │   │   └── skeleton/     # .npy joint coordinates (17 joints, COCO format)
+        │   │   └── skeleton/     # .npy joint coordinates (17 joints)
         │   └── ...
         └── ...
 ```
 
 ### OccluRadar-Human *(Coming Soon)*
 
-A self-collected dataset featuring paired complete/occluded mmWave point clouds with synchronized 3D skeleton annotations, designed to evaluate completion performance under real-world occlusion scenarios. Details to be released upon paper acceptance.
+A self-collected dataset featuring paired complete/occluded mmWave point clouds with synchronized 3-D skeleton annotations for through-obstacle evaluation. To be released upon paper acceptance.
 
 ---
 
@@ -86,18 +96,14 @@ A self-collected dataset featuring paired complete/occluded mmWave point clouds 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/skd-net/SKD-Net.git
-cd SKD-Net
+git clone https://github.com/mmwave-human/PRISM.git
+cd PRISM
 
-# Create conda environment
-conda create -n SKD-Net python=3.8
-conda activate SKD-Net
+conda create -n prism python=3.8
+conda activate prism
 
-# Install dependencies
 pip install -r requirements.txt
 
-# Install pointnet2 ops
 cd pointnet2_ops_lib
 python setup.py install
 cd ..
@@ -105,19 +111,19 @@ cd ..
 
 ### Training
 
-SKD-Net follows a **4-stage progressive training** strategy:
+PRISM follows a **4-stage progressive training** strategy:
 
-**Stage 1: SkelKD Pre-training**
+**Stage 1: SkelKD Pre-training** (~13h on RTX 3090)
 ```bash
 python train_SkelKD.py --save experiments
 ```
 
-**Stage 2: Compressor Pre-training**
+**Stage 2: HierVAE Pre-training** (~46h on RTX 3090)
 ```bash
 python train_Compressor.py --save experiments
 ```
 
-**Stage 3: Latent Diffusion Training**
+**Stage 3: Latent Diffusion Training** (~4h on RTX 3090)
 ```bash
 python train_MMFi_LDT.py --save experiments
 ```
@@ -137,41 +143,37 @@ python train_MMFi_LDT.py \
 
 ---
 
-## 📊 Results
+## 📊 Results on MM-Fi
 
-> ⚠️ Full quantitative results will be updated upon experiment completion.
+| Method | Venue | Type | MMD-CD ↓ | COV-CD ↑ | 1-NN-CD ↓ | CD ↓ |
+|--------|-------|------|----------|----------|-----------|------|
+| PCN* | 3DV'18 | Compl. | 0.00887 | 0.0855 | 0.9994 | 0.0143 |
+| PoinTr* | ICCV'21 | Compl. | 0.00813 | 0.1172 | 0.9989 | **0.0138** |
+| SnowflakeNet*† | ICCV'21 | Compl. | 0.00842 | 0.1013 | 0.9991 | 0.0145 |
+| LAKe-Net*† | CVPR'22 | Compl. | 0.00856 | 0.0878 | 0.9993 | 0.0147 |
+| mmPoint* | BMVC'23 | Radar | 0.00877 | 0.0991 | 0.9995 | 0.0158 |
+| LION*† | NeurIPS'22 | Gen. | 0.00724 | 0.1892 | 0.9813 | — |
+| TIGER*† | CVPR'24 | Gen. | 0.00695 | 0.2147 | 0.9776 | — |
+| **PRISM (Ours)** | — | **Gen.** | **0.00483** | **0.3748** | **0.9697** | 0.0173 |
+| LiDAR GT (Oracle) | — | — | — | 1.000 | 0.500 | 0.000 |
 
-### Point Cloud Completion on MM-Fi
-
-Evaluation metrics follow [LION](https://github.com/nv-tlabs/LION): MMD-CD ↓, COV-CD ↑, 1-NN-CD ↓ (lower 1-NN-CD is better, ideal = 50%).
-
-| Method | Venue | MMD-CD ↓ | COV-CD ↑ | 1-NN-CD ↓ |
-|--------|-------|----------|----------|-----------|
-| PCN*   | 3DV'18 | — | — | — |
-| PoinTr* | ICCV'21 | — | — | — |
-| Snowflake* | ICCV'21 | — | — | — |
-| LAKe-Net* | CVPR'22 | — | — | — |
-| LION*  | NeurIPS'22 | — | — | — |
-| TIGER* | CVPR'24 | — | — | — |
-| **SKD-Net (Ours)** | — | **—** | **—** | **—** |
-
-*\* Adapted to mmWave 256-point input.*
+*\* Adapted to mmWave 256-pt input. †: estimated, verification ongoing.*
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-SKD-Net/
+PRISM/
 ├── datasets/
 │   └── MMFiViPC.py           # MM-Fi dataloader (mmWave + LiDAR + Skeleton)
 ├── model/
 │   ├── SkelKD/
 │   │   └── Network.py        # SkelKD cross-modal skeleton detector
 │   ├── Compressor/
-│   │   └── Network.py        # PE Encoder + Decoder (VAE)
-│   ├── AutoEncoderE/
-│   │   └── Network.py        # Auto-encoder E (mmWave → coarse points)
+│   │   └── Network.py        # HierVAE encoder + decoder
+│   ├── GeoAE/
+│   │   └── Network.py        # Geometric auto-encoder (mmWave → 128 coarse pts)
 │   └── scorenet/
 │       └── score.py          # Condition Network + Dynamic Transformer
 ├── completion_trainer/
@@ -181,7 +183,10 @@ SKD-Net/
 ├── train_SkelKD.py
 ├── train_Compressor.py
 ├── train_MMFi_LDT.py
-├── requirements.txt
+├── baseline/
+│   ├── PCN/                  # PCN adapted for mmWave
+│   ├── PoinTr/               # PoinTr adapted for mmWave
+│   └── mmPoint/              # mmPoint (BMVC'23) adapted for MM-Fi
 └── README.md
 ```
 
@@ -189,14 +194,13 @@ SKD-Net/
 
 ## ⚙️ Key Configurations
 
-Key hyperparameters (see `experiments/*/config.yaml` for full details):
-
 | Component | Parameter | Value |
 |-----------|-----------|-------|
 | SkelKD | local_dim / global_dim | 128 / 256 |
-| Compressor | z_dim / z_scales | 20 / 8 |
-| Score Network | hidden_size / num_blocks | 256 / 6 |
-| Diffusion | train_N / sample_N | 1000 / 200 |
+| HierVAE | z_dim / z_scales / levels | 20 / 8 / 6 |
+| Condition Net | KV tokens | 17 + 128 = 145 |
+| Dynamic Transformer | hidden / blocks / heads | 256 / 6 / 4 |
+| Diffusion | train_T / sample_steps | 1000 / 200 |
 | Training | lr / batch_size | 1e-4 / 16 |
 
 ---
@@ -204,11 +208,12 @@ Key hyperparameters (see `experiments/*/config.yaml` for full details):
 ## 📝 Citation
 
 ```bibtex
-@inproceedings{skdnet2025,
-  title     = {SKD-Net: Skeleton-Guided Latent Diffusion for Human Point Cloud Completion from Sparse mmWave Radar},
+@inproceedings{prism2026,
+  title     = {PRISM: Human Point Cloud Reconstruction via
+               Skeleton-Guided Diffusion from mmWave Radar},
   author    = {Anonymous},
   booktitle = {Advances in Neural Information Processing Systems},
-  year      = {2025}
+  year      = {2026}
 }
 ```
 
@@ -216,4 +221,4 @@ Key hyperparameters (see `experiments/*/config.yaml` for full details):
 
 ## 🙏 Acknowledgements
 
-This work builds upon [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi), [LION](https://github.com/nv-tlabs/LION), and [LDT](https://github.com/ZhaoyangLyu/LatentDiffusionTransformer). We thank the authors for their excellent open-source contributions.
+This work builds upon [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi), [LION](https://github.com/nv-tlabs/LION), and the LDT backbone. We thank the authors for their excellent open-source contributions.

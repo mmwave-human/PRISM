@@ -30,12 +30,12 @@ grid_size:  2       # folding grid side; num_coarse × grid_size² must = num_fi
 alpha:      0.5     # weight of fine loss vs coarse loss
 
 # ── MM-Fi dataset ─────────────────────────────────────────────────────────────
-data_root: '/home/hjc/Desktop/SKD-Net/data/MMFi/E01'
+data_root: '/home/hjc/Desktop/PRISM/data/MMFi/E01'
 
 train_subjects: ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07']
 val_subjects:   ['S08', 'S09', 'S10']
 
-# 8 actions — identical to SKD-Net Compressor/LDT trainer
+# 8 actions — identical to PRISM HierVAE/LDT trainer
 actions: ['A03', 'A12', 'A13', 'A17', 'A19', 'A22', 'A26', 'A27']
 
 lidar_npoints:  2048

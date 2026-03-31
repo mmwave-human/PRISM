@@ -1,7 +1,7 @@
 """
 model/scorenet/score.py
 =======================
-SKD-Net 条件扩散 Score Network
+PRISM 条件扩散 Score Network
 
 ConditionNet 双路条件（修正版）：
   ──────────────────────────────────────────────────────

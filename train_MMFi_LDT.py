@@ -1,7 +1,7 @@
 """
 train_MMFi_LDT.py
 =================
-训练 SKD-Net 条件扩散模型。
+训练 PRISM 条件扩散模型。
 
 支持两种条件模式（由 config.score.coarse_condition 控制）：
   use_coarse=True  (默认):

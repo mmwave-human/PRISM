@@ -15,7 +15,7 @@ Data layout expected on disk:
   <data_root>/<subject>/<action>/mmwave/frame*_filtered.bin  — TI IWR6843 format
 
 Example:
-  /home/hjc/Desktop/SKD-Net/data/MMFi/E01/S01/A02/lidar/frame1_filtered.bin
+  /home/hjc/Desktop/PRISM/data/MMFi/E01/S01/A02/lidar/frame1_filtered.bin
 """
 
 import os

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SKD-Net</title>
+  <title>PRISM</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
@@ -527,7 +527,7 @@
 
 <!-- NAV -->
 <nav>
-  <span class="nav-logo">SKD-Net</span>
+  <span class="nav-logo">PRISM</span>
   <div class="nav-links">
     <a href="#abstract">Abstract</a>
     <a href="#method">Method</a>
@@ -546,7 +546,7 @@
   </div>
 
   <h1>
-    <em>SKD-Net</em>: Skeleton-Guided Latent Diffusion<br>
+    <em>PRISM</em>: Human Point Cloud Reconstruction<br>
     for Human Point Cloud Completion<br>
     from Sparse mmWave Radar
   </h1>
@@ -561,7 +561,7 @@
 
   <div class="btn-row">
     <a href="#" class="btn btn-solid">📄 Paper</a>
-    <a href="https://github.com/skd-net/SKD-Net" class="btn btn-ghost">💻 Code</a>
+    <a href="https://github.com/mmwave-human/PRISM" class="btn btn-ghost">💻 Code</a>
     <a href="#dataset" class="btn btn-ghost">🗂️ Dataset</a>
     <a href="#results" class="btn btn-ghost">📊 Results</a>
   </div>
@@ -576,7 +576,7 @@
     </video>
   </div>
   <p class="teaser-cap">
-    SKD-Net completes dense human point clouds (right) from sparse mmWave radar inputs (left)
+    PRISM reconstructs dense human point clouds (right) from sparse mmWave radar inputs (left)
     across diverse actions. &nbsp;<em>Placeholder — own results coming soon.</em>
   </p>
 </div>
@@ -594,7 +594,7 @@
     inputs and fail under the extreme sparsity and non-rigid topology of the human body.
   </p>
   <p>
-    We propose <strong>SKD-Net</strong>, a two-path framework that decouples structural alignment
+    We propose <strong>PRISM</strong>, a two-path framework that decouples structural alignment
     from shape completion. <strong>SkelKD</strong> learns cross-modal skeleton joint coordinates
     from radar observations via attention-based soft aggregation, resolving the spatial
     misalignment between depth-camera skeletons and radar space. A <strong>PE Encoder</strong>
@@ -605,7 +605,7 @@
     action-consistent human point clouds.
   </p>
   <p>
-    SKD-Net significantly outperforms both deterministic completion baselines (PCN, PoinTr,
+    PRISM significantly outperforms both deterministic completion baselines (PCN, PoinTr,
     Snowflake, LAKe-Net) and generative baselines (LION, TIGER) on MM-Fi, while maintaining
     temporal consistency across frames.
   </p>
@@ -690,7 +690,7 @@
         <tr><td>LION*</td><td>NeurIPS'22</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
         <tr><td>TIGER*</td><td>CVPR'24</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
         <tr class="ours">
-          <td>SKD-Net (Ours)</td><td>NeurIPS'25</td><td>Generative</td>
+          <td>PRISM (Ours)</td><td>NeurIPS'25</td><td>Generative</td>
           <td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td>
         </tr>
       </tbody>
@@ -824,12 +824,12 @@
 <div class="section reveal" id="citation">
   <p class="eyebrow">Citation</p>
   <h2>Cite this work</h2>
-  <p>If you find SKD-Net useful in your research, please consider citing:</p>
+  <p>If you find PRISM useful in your research, please consider citing:</p>
 
   <div class="bib-wrap">
     <button class="copy-btn" onclick="copyBib(this)">Copy</button>
     <pre id="bib">@inproceedings{skdnet2025,
-  title     = {SKD-Net: Skeleton-Guided Latent Diffusion for Human
+  title     = {PRISM: Human Point Cloud Reconstruction via Skeleton-Guided Latent Diffusion for Human
                Point Cloud Completion from Sparse mmWave Radar},
   author    = {Anonymous},
   booktitle = {Advances in Neural Information Processing Systems},
@@ -844,7 +844,7 @@
   <p style="margin-top:0.3rem;">
     Inspired by <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">MM-Fi</a>
     &nbsp;·&nbsp;
-    <a href="https://github.com/skd-net/SKD-Net" target="_blank">GitHub</a>
+    <a href="https://github.com/mmwave-human/PRISM" target="_blank">GitHub</a>
   </p>
 </footer>
 
