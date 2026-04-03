@@ -27,4 +27,15 @@ runs/
 .idea/
 archive/
 *.npy
-baseline/mmPoint
+
+# baseline（第三方代码/输出）
+baseline/
+
+# 采集原始数据
+assets/DataCollection/
+
+# 模板文件
+assets/temple/
+
+# 生成视频输出
+outputs/
