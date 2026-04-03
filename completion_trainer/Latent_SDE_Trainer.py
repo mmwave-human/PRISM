@@ -300,7 +300,7 @@ class Trainer(BaseTrainer):
                     name = _ACTION_NAMES.get(cls_idx, str(cls_idx))
                     print(f"    {name} (n={mask.sum():3d}) : {mean_cls:.6f}")
 
-            gen_res = compute_all_metrics(smp, ref, batch_size=64)
+            gen_res = compute_all_metrics(smp, ref, batch_size=64, no_emd=True)
 
         all_res = {
             ("val/gen/%s" % k): (v if isinstance(v, float) else v.item())

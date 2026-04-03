@@ -6,7 +6,7 @@
 # ── Training ──────────────────────────────────────────────────────────────────
 batch_size: 32
 workers: 8
-nepoch: 200
+nepoch: 2000
 start_epoch: 0
 dir_outpath: output_mmfi
 manual_seed: null
@@ -35,8 +35,9 @@ data_root: '/home/hjc/Desktop/PRISM/data/MMFi/E01'
 train_subjects: ['S01', 'S02', 'S03', 'S04', 'S05', 'S06', 'S07']
 val_subjects:   ['S08', 'S09', 'S10']
 
-# 8 actions — identical to PRISM HierVAE/LDT trainer
-actions: ['A03', 'A12', 'A13', 'A17', 'A19', 'A22', 'A26', 'A27']
+actions: ['A01', 'A02', 'A03', 'A04', 'A05', 'A06', 'A07', 'A08', 'A09', 'A10',
+          'A11', 'A12', 'A13', 'A14', 'A15', 'A16', 'A17', 'A18', 'A19', 'A20',
+          'A21', 'A22', 'A23', 'A24', 'A25', 'A26', 'A27']
 
 lidar_npoints:  2048
 mmwave_npoints: 512

@@ -126,6 +126,20 @@ def load_pointr(ckpt_path, device):
     return model.to(device).eval()
 
 
+def load_snowflake(ckpt_path, device):
+    sys.path.insert(0, os.path.join(SCRIPT_DIR, 'SnowflakeNet'))
+    for k in [k for k in sys.modules if k == 'models' or k.startswith('models.')]:
+        del sys.modules[k]
+    from models.snowflakenet import SnowflakeNet
+    model = SnowflakeNet(dim_feat=512, num_pc=256, num_p0=512,
+                         radius=1, bounding=True, up_factors=[2, 2])
+    raw   = torch.load(ckpt_path, map_location=device)
+    state = raw.get('net_state_dict', raw)
+    model.load_state_dict(_strip_module(state))
+    print(f'[SnowflakeNet] loaded from {ckpt_path}')
+    return model.to(device).eval()
+
+
 # ── Inference ─────────────────────────────────────────────────────────────────
 @torch.no_grad()
 def run_inference(method, model, loader, device, template=None):
@@ -148,6 +162,10 @@ def run_inference(method, model, loader, device, template=None):
             _, fine = model(mmw)
             output  = fine                          # (B, 2048, 3)
 
+        elif method == 'snowflake':
+            preds  = model(mmw)
+            output = preds[-1]                      # finest output (B, 2048, 3)
+
         smp_sub = random_subsample(output, EVAL_NPTS)  # (B, 256, 3)
         ref_sub = random_subsample(gt,     EVAL_NPTS)  # (B, 256, 3)
 
@@ -164,7 +182,7 @@ def run_inference(method, model, loader, device, template=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--method', required=True,
-                        choices=['pcn', 'mmpoint', 'pointr'])
+                        choices=['pcn', 'mmpoint', 'pointr', 'snowflake'])
     parser.add_argument('--ckpt',   required=True,
                         help='Path to bestl1_network.pth')
     parser.add_argument('--gpu',    type=int, default=0)
@@ -174,7 +192,8 @@ def main():
     device = torch.device(f'cuda:{args.gpu}')
 
     # ── Load model ────────────────────────────────────────────────────────────
-    loaders = {'pcn': load_pcn, 'mmpoint': load_mmpoint, 'pointr': load_pointr}
+    loaders = {'pcn': load_pcn, 'mmpoint': load_mmpoint, 'pointr': load_pointr,
+               'snowflake': load_snowflake}
     model   = loaders[args.method](args.ckpt, device)
 
     # ── Load dataset (use PCN's dataset_mmfi which is canonical) ─────────────

@@ -246,34 +246,40 @@ def lgan_mmd_cov(all_dist):
     }
 
 
-def compute_all_metrics(sample_pcs, ref_pcs, batch_size, accelerated_cd=True, accelerated_emd=True):
+def compute_all_metrics(sample_pcs, ref_pcs, batch_size, accelerated_cd=True, accelerated_emd=True, no_emd=False):
+    """
+    no_emd=True: skip all EMD computation (avoids drjit CUDA crash on large datasets).
+    EMD keys are returned as 0.0 placeholders so downstream CSV columns stay consistent.
+    """
     results = {}
     ref_pcs, sample_pcs = ref_pcs.cuda(), sample_pcs.cuda()
-    M_rs_cd, M_rs_emd = _pairwise_EMD_CD_(ref_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
 
-    res_cd = lgan_mmd_cov(M_rs_cd.t())
-    results.update({
-        "%s-CD" % k: v for k, v in res_cd.items()
-    })
-
-    res_emd = lgan_mmd_cov(M_rs_emd.t())
-    results.update({
-        "%s-EMD" % k: v for k, v in res_emd.items()
-    })
-    for k, v in results.items():
-        print('[%s] %.8f' % (k, v.item()))
-    M_rr_cd, M_rr_emd = _pairwise_EMD_CD_(ref_pcs, ref_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
-    M_ss_cd, M_ss_emd = _pairwise_EMD_CD_(sample_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
-
-    # 1-NN results
-    one_nn_cd_res = knn(M_rr_cd, M_rs_cd, M_ss_cd, 1, sqrt=False)
-    results.update({
-        "1-NN-CD-%s" % k: v for k, v in one_nn_cd_res.items() if 'acc' in k
-    })
-    one_nn_emd_res = knn(M_rr_emd, M_rs_emd, M_ss_emd, 1, sqrt=False)
-    results.update({
-        "1-NN-EMD-%s" % k: v for k, v in one_nn_emd_res.items() if 'acc' in k
-    })
+    if no_emd:
+        M_rs_cd = _pairwise_CD_(ref_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd)
+        res_cd = lgan_mmd_cov(M_rs_cd.t())
+        results.update({"%s-CD" % k: v for k, v in res_cd.items()})
+        results.update({"mmd-EMD": torch.tensor(0.0), "cov-EMD": torch.tensor(0.0)})
+        for k, v in results.items():
+            print('[%s] %.8f' % (k, v.item()))
+        M_rr_cd = _pairwise_CD_(ref_pcs, ref_pcs, batch_size, accelerated_cd=accelerated_cd)
+        M_ss_cd = _pairwise_CD_(sample_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd)
+        one_nn_cd_res = knn(M_rr_cd, M_rs_cd, M_ss_cd, 1, sqrt=False)
+        results.update({"1-NN-CD-%s" % k: v for k, v in one_nn_cd_res.items() if 'acc' in k})
+        results.update({"1-NN-EMD-acc": torch.tensor(0.0)})
+    else:
+        M_rs_cd, M_rs_emd = _pairwise_EMD_CD_(ref_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
+        res_cd = lgan_mmd_cov(M_rs_cd.t())
+        results.update({"%s-CD" % k: v for k, v in res_cd.items()})
+        res_emd = lgan_mmd_cov(M_rs_emd.t())
+        results.update({"%s-EMD" % k: v for k, v in res_emd.items()})
+        for k, v in results.items():
+            print('[%s] %.8f' % (k, v.item()))
+        M_rr_cd, M_rr_emd = _pairwise_EMD_CD_(ref_pcs, ref_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
+        M_ss_cd, M_ss_emd = _pairwise_EMD_CD_(sample_pcs, sample_pcs, batch_size, accelerated_cd=accelerated_cd, accelerated_emd=accelerated_emd)
+        one_nn_cd_res = knn(M_rr_cd, M_rs_cd, M_ss_cd, 1, sqrt=False)
+        results.update({"1-NN-CD-%s" % k: v for k, v in one_nn_cd_res.items() if 'acc' in k})
+        one_nn_emd_res = knn(M_rr_emd, M_rs_emd, M_ss_emd, 1, sqrt=False)
+        results.update({"1-NN-EMD-%s" % k: v for k, v in one_nn_emd_res.items() if 'acc' in k})
     return results
 
 

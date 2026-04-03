@@ -122,8 +122,10 @@ tmux ls
 
 # 连接到某个 session
 tmux new -s compressor
+tmux new -s SnowflakeNet
 
-tmux attach -t mmPoint
+tmux attach -t SnowflakeNet
+tmux attach -t mmPoint  
 tmux attach -t PCN
 tmux attach -t PoinTr
 tmux attach -t compressor
@@ -131,9 +133,9 @@ tmux attach -t diffusion
 tmux attach -t skelkd
 
 nvidia-smi
-
+ 
 CUDA_VISIBLE_DEVICES=1 python train_MMFi_Compressor.py
-CUDA_VISIBLE_DEVICES=2 python train_SkelKD.py
+CUDA_VISIBLE_DEVICES=2 python train_MMFi_Compressor.py
 # 退出时按 Ctrl+B D 脱离（不要直接关窗口，否则进程会停）
 
 
@@ -205,4 +207,27 @@ python vis_diffusion_web.py \
     --actions A12 A13 A17 A19 A22 A26 A27
     --n_steps 200
 
+CUDA_VISIBLE_DEVICES=1 /home/hjc/miniconda3/envs/SKD-Net/bin/python vis_teaser.py \
+    --cfg             experiments/Latent_Diffusion_Trainer/config_8actions.yaml \
+    --action A27 \
+    --baseline_frames 30,35,38,48 \
+    --prism_frames    30,39,40,48 \
+    --baseline_frame_labels '$t_1$ (upright),$t_2$ (descent),$t_3$ (full bow),$t_4$ (ascent)' \
+    --prism_frame_labels    '$t_1$ (upright),$t_2$ (descent),$t_3$ (full bow),$t_5$ (recover)' \
+    --pcn_ckpt        baseline/PCN/output_mmfi/PCN-0319_1438/checkpoints/bestl1_network.pth \
+    --pointr_ckpt     baseline/PoinTr/output_mmfi/PoinTr-0319_1503/checkpoints/bestl1_network.pth \
+    --snowflake_ckpt  baseline/SnowflakeNet/output_mmfi/SnowflakeNet-0327_0113/checkpoints/bestl1_network.pth \
+    --mmpoint_ckpt    baseline/mmPoint/output_mmfi/mmPoint_mmfi-0319_1339/checkpoints/bestl1_network.pth \
+    --prism_ckpt      experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_3600.pth \
+    --ae_ckpt         experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_3600.pth \
+    --out assets/teaser.png --dpi 200
 
+CUDA_VISIBLE_DEVICES=1 python vis_qual_comparison.py \
+    --cfg        experiments/Latent_Diffusion_Trainer/config_8actions.yaml \
+    --prism_ckpt experiments/Latent_Diffusion_Trainer/mmfi_202603151358/checkpt_3600.pth \
+    --ae_ckpt    experiments/Latent_Diffusion_Trainer/mmfi_202603151358/autoencoder_e_3600.pth \
+    --out        assets/fig/qual_comparison.png \
+    --dpi        200
+
+python vis_demo.py --mmfi_start 10 --mmfi_end 27 --mist_start 23 --mist_end 46
+python vis_demo.py --mmfi_start 28 --mmfi_end 46 --mist_start 47 --mist_end 66
