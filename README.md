@@ -10,7 +10,7 @@
   <img src="assets/fig/PRISM architecture overview.jpg" width="900"/>
 </p>
 
-> A skeleton-guided conditional latent diffusion framework for dense human point cloud reconstruction from sparse mmWave radar, paired with **MIST** — the first mmWave dataset with a physical barrier between sensor and subject.
+> A skeleton-guided conditional latent diffusion framework for dense human point cloud reconstruction from sparse mmWave radar, paired with MIST — the first mmWave dataset with a physical barrier between sensor and subject.
 
 ---
 
@@ -50,20 +50,10 @@ MIST is the first mmWave human point cloud dataset providing a **paired quantita
 - **Scale:** ~640k paired frames across all occlusion levels
 
 **Expected directory structure:**
-```
-data/
-└── MIST/
-    ├── P01/
-    │   ├── OL0/
-    │   │   ├── D06/
-    │   │   │   ├── mmwave/       # .npy point clouds (TI IWR6843)
-    │   │   │   ├── lidar/        # .npy point clouds (Livox Mid-360)
-    │   │   │   └── skeleton/     # .npy joint coordinates (H36M-17)
-    │   │   └── ...
-    │   ├── OL1/
-    │   └── OL2/
-    └── ...
-```
+
+<p align="center">
+  <img src="assets/fig/The expanded directory.jpg" width="600"/>
+</p>
 
 To be released upon paper acceptance.
 
