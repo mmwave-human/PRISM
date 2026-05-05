@@ -457,7 +457,7 @@
 
   <div class="btn-row">
     <a href="#" class="btn btn-solid">📄 Paper</a>
-    <a href="#" class="btn btn-ghost" title="Code available upon acceptance">💻 Code (Anonymous)</a>
+    <a href="#" class="btn btn-ghost" title="Code available upon acceptance">💻 Code</a>
     <a href="#dataset" class="btn btn-ghost">🗂️ Dataset</a>
     <a href="#results" class="btn btn-ghost">📊 Results</a>
   </div>
@@ -527,9 +527,7 @@
 
   <img src="assets/fig/PRISM architecture overview.jpg" alt="PRISM Framework" class="fw-img"/>
   <p class="fig-cap">
-    Figure 1. Overview of PRISM. Condition path: SkelKD → GCN tokens, GeoAE → coarse geometry tokens,
-    and action embedding → AdaLN signal, assembled into a 145-token K/V sequence.
-    Diffusion path: HierVAE encoding, VP-SDE denoising by the Dynamic Transformer, dense point cloud decoding.
+    Figure 1. Overview of PRISM's two-path architecture for dense human point cloud reconstruction from sparse mmWave radar.
   </p>
 
   <div class="pipeline">
@@ -619,19 +617,6 @@
         To be released upon paper acceptance.
       </p>
     </div>
-    <div class="dset-card">
-      <h3>MM-Fi <span class="tag tag-pub">Public</span></h3>
-      <p>
-        Large-scale multi-modal dataset with synchronized mmWave, LiDAR, RGB-D, and WiFi CSI.
-        40 subjects · 27 actions · 4 environments · 320K+ frames.
-      </p>
-      <p style="margin-top:0.75rem;">
-        <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">→ Official page</a>
-      </p>
-      <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
-        Cross-dataset transfer: E01 · S08–S10 · 8 shared action classes (A03, A12, A13, A17, A19, A22, A26, A27).
-      </p>
-    </div>
   </div>
 </div>
 
@@ -658,9 +643,6 @@
 <!-- FOOTER -->
 <footer>
   <p>Built for anonymous review &nbsp;·&nbsp; NeurIPS 2026</p>
-  <p style="margin-top:0.3rem;">
-    <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">MM-Fi</a>
-  </p>
 </footer>
 
 <script>
