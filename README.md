@@ -10,7 +10,7 @@
   <img src="assets/fig/PRISM architecture overview.jpg" width="900"/>
 </p>
 
-> **PRISM** (**P**oint cloud **R**econstruction v**I**a **S**keleton-guided diffusion from **M**mWave radar) reconstructs dense, action-coherent human point clouds from sparse mmWave radar returns (≈50–150 points/frame) under clear-view and through-obstacle conditions. We also release **MIST**, the first mmWave dataset with a physical barrier between sensor and subject.
+> A skeleton-guided conditional latent diffusion framework for dense human point cloud reconstruction from sparse mmWave radar, paired with **MIST** — the first mmWave dataset with a physical barrier between sensor and subject.
 
 ---
 
@@ -27,19 +27,6 @@ On MIST, PRISM achieves **COV-CD 0.362** against 0.113 for the strongest complet
 ---
 
 ## Architecture
-
-```
-mmWave PC ──→ [GeoAE] ──────────────→ Coarse C (128 pts)
-    │                                         │
-    └──→ [SkelKD] ──────────────→ P̂ (17 joints)
-    │                                         │
-    └──→ [HierVAE Enc]          [Condition Network]
-              │                 (145-token K/V: GCN×17 + Geo×128)
-             Z₀ ──VP-SDE──→ Z_t       │
-                                  [Dynamic Transformer ×6]
-                                       │
-                              [HierVAE Dec] → X_f (256 pts)
-```
 
 | Module | Role |
 |---|---|
@@ -79,21 +66,6 @@ data/
 ```
 
 To be released upon paper acceptance.
-
----
-
-## MM-Fi (Cross-Dataset Transfer)
-
-We additionally evaluate cross-dataset generalisation on [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi) (40 subjects · 27 actions · 4 environments) without retraining on MM-Fi data.
-
-**Protocol:** E01 · S08–S10 · 8 shared action classes (A03, A12, A13, A17, A19, A22, A26, A27)
-
-| ID | Description | ID | Description |
-|---|---|---|---|
-| A03 | Chest expansion | A19 | Picking up object |
-| A12 | Squat | A22 | Kicking |
-| A13 | Raising hand | A26 | Jumping up |
-| A17 | Waving hand | A27 | Bowing |
 
 ---
 
@@ -162,20 +134,6 @@ python train_Hybrid.py --save experiments
 python eval_ldt.py \
     --resume experiments/path/to/checkpoint.pth
 ```
-
----
-
-## Key Configurations
-
-| Component | Parameter | Value |
-|---|---|---|
-| SkelKD | local_dim / global_dim | 128 / 256 |
-| HierVAE | z_dim / z_scales / levels | 20 / 8 / 6 |
-| GeoAE | output points | 128 |
-| Condition Network | K/V tokens | 17 + 128 = 145 |
-| Dynamic Transformer | hidden / blocks / heads | 256 / 6 / 4 |
-| Diffusion | train_T / sample_steps | 1000 / 200 |
-| Training | lr / batch_size | 1e-4 / 16 |
 
 ---
 
