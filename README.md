@@ -2,96 +2,119 @@
 
 <p align="center">
   <a href="https://mmwave-human.github.io/PRISM">Project Page</a> •
-  <a href="#">Paper (Anonymous)</a> •
+  <a href="#">Paper (Anonymous Submission · NeurIPS 2026)</a> •
   <a href="https://github.com/mmwave-human/PRISM">Code</a>
 </p>
 
 <p align="center">
-  <img src="assets/SKD-Net_framework.jpg" width="900"/>
+  <img src="assets/fig/PRISM architecture overview.jpg" width="900"/>
 </p>
 
-> **PRISM** (**P**oint cloud **R**econstruction v**I**a **S**keleton-guided diffusion from **M**mWave radar) is a conditional latent diffusion framework for complete human point cloud reconstruction from sparse mmWave radar observations (50–150 points/frame). PRISM recovers topologically correct, action-specific, temporally consistent human point clouds guided by cross-modal skeleton alignment and a 145-token dual-path condition.
+> **PRISM** (**P**oint cloud **R**econstruction v**I**a **S**keleton-guided diffusion from **M**mWave radar) reconstructs dense, action-coherent human point clouds from sparse mmWave radar returns (≈50–150 points/frame) under clear-view and through-obstacle conditions. We also release **MIST**, the first mmWave dataset with a physical barrier between sensor and subject.
 
 ---
 
-## 📋 Abstract
+## Abstract
 
-mmWave radar enables all-weather, non-contact human sensing, yet its inherent sparsity of 50–150 reflections per frame severely limits downstream body analysis. Existing point cloud completion methods target dense rigid-object inputs and fundamentally fail under the combination of extreme sparsity and non-rigid topological variability of human bodies.
+mmWave FMCW radar is an ideal modality for human sensing, offering all-weather, non-contact, and privacy-preserving perception, yet its inherent sparsity severely limits downstream body analysis and no existing dataset provides a paired quantitative benchmark for dense human point cloud reconstruction under occlusion.
 
-We present **PRISM**, a conditional latent diffusion framework for human point cloud reconstruction from sparse mmWave radar. SkelKD aligns noisy depth-camera skeletons to the radar coordinate frame via cross-modal attention; HierVAE then encodes the sparse input into compact 8×120 latent tokens through a six-level hierarchical VAE. GeoAE simultaneously extracts a stable 128-point coarse geometric proxy from the raw mmWave cloud; together with skeleton topology via a graph convolutional network and action class label, this assembles a 145-token conditioning sequence that guides a Dynamic Transformer to denoise the latent representation under a VP-SDE framework.
+We present **MIST**, the first mmWave human point cloud dataset with a physical barrier between sensor and subject, providing paired clear-view and through-obstacle captures at three controlled occlusion levels with synchronized LiDAR ground truth — spanning **8 subjects, 30 action classes, and 640k paired frames**.
 
-On MM-Fi, PRISM significantly outperforms point cloud completion and generative baselines on MMD-CD, COV-CD, and 1-NN-CD metrics while producing temporally consistent, action-specific human point cloud sequences. We further contribute **OccluRadar-Human**, the first dataset providing paired complete and occluded mmWave captures with frame-level 3-D skeleton ground truth.
+We propose **PRISM**, a skeleton-guided conditional latent diffusion framework reconstructing dense human point clouds from sparse mmWave radar alone. Three conditioning streams — skeleton joint positions (SkelKD), coarse body geometry (GeoAE), and action class embeddings — guide a Dynamic Transformer to denoise under a VP-SDE framework, generating LiDAR-quality human point clouds.
+
+On MIST, PRISM achieves **COV-CD 0.362** against 0.113 for the strongest completion baseline. Under through-obstacle attenuation (≈50 points/frame), where all baselines collapse to fixed-template outputs, PRISM maintains meaningful reconstruction.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
-mmWave PC ──→ [GeoAE] ──→ Coarse C (128 pts)
-    │                              ↓
-    └──→ [SkelKD] ← Depth Skel ──→ P̂ (17 joints)
-              │                    ↓
-         [HierVAE Enc]    [Condition Network]
-              ↓                    ↓
-             Z₀   ──VP-SDE──→  Z_t + KV(145 tok)
-                                   ↓
-                        [Dynamic Transformer ×6]
-                                   ↓
-                        [HierVAE Dec] → X_f (256 pts)
+mmWave PC ──→ [GeoAE] ──────────────→ Coarse C (128 pts)
+    │                                         │
+    └──→ [SkelKD] ──────────────→ P̂ (17 joints)
+    │                                         │
+    └──→ [HierVAE Enc]          [Condition Network]
+              │                 (145-token K/V: GCN×17 + Geo×128)
+             Z₀ ──VP-SDE──→ Z_t       │
+                                  [Dynamic Transformer ×6]
+                                       │
+                              [HierVAE Dec] → X_f (256 pts)
 ```
 
-**Key modules:**
-- **SkelKD**: Cross-modal attention that refines depth-camera skeletons to radar coordinate frame without explicit calibration
-- **HierVAE**: 6-level hierarchical VAE encoding sparse point clouds to 8×120 structured latent tokens
-- **GeoAE**: Geometric auto-encoder producing 128 stable coarse points as geometric proxy
-- **Condition Network**: Dual-path 145-token K/V sequence (17 skeleton GCN tokens + 128 coarse geometry tokens + action label)
-- **Dynamic Transformer**: 6-block denoising network with VP-SDE and AdaLayerNorm conditioning
+| Module | Role |
+|---|---|
+| **SkelKD** | 17 learnable queries attending over per-point features → radar-aligned joint positions; trained with MPJPE + occlusion augmentation |
+| **HierVAE** | 6-level hierarchical VAE encoding sparse input to 8×120 structured latent; pre-trained and frozen |
+| **GeoAE** | Density-invariant mapping from sparse radar cloud to 128 stable coarse points; stable under occlusion |
+| **Condition Network** | Assembles SkelKD GCN tokens (17) + GeoAE tokens (128) → 145-token K/V; action identity enters AdaLN signal |
+| **Dynamic Transformer** | 6 ResidualBlocks alternating cross-attention / self-attention; AdaLN driven by timestep + action + skeleton global pool |
 
 ---
 
-## 🗂️ Dataset
+## MIST Dataset
 
-### MM-Fi
+MIST is the first mmWave human point cloud dataset providing a **paired quantitative benchmark** for through-obstacle dense human point cloud reconstruction.
 
-We use the [MM-Fi dataset](https://ntu-aiot-lab.github.io/mm-fi) as our primary benchmark.
-
-**Experimental protocol:**
-
-| Split | Subjects | Actions |
-|-------|----------|---------|
-| Train | S01–S07  | A03, A12, A13, A17, A19, A22, A26, A27 |
-| Val   | S08–S10  | A03, A12, A13, A17, A19, A22, A26, A27 |
-
-**Action descriptions:**
-
-| ID  | Description            | ID  | Description       |
-|-----|------------------------|-----|-------------------|
-| A03 | Chest expansion (vertical) | A19 | Picking up things |
-| A12 | Squat                  | A22 | Kicking (left)    |
-| A13 | Raising hand (left)    | A26 | Jumping up        |
-| A17 | Waving hand (left)     | A27 | Bowing            |
+**Design:**
+- **Occlusion levels:** OL0 (clear view) · OL1 (18 mm wooden board) · OL2 (36 mm stacked boards)
+- **Sensors:** 2× TI IWR6843 FMCW radar · Livox Mid-360 LiDAR (ground truth) · Intel RealSense D435i
+- **Subjects:** 8 (P01–P08) · Train: P01–P06 · Test: P07–P08
+- **Actions:** 30 classes — 16 rehabilitation (R01–R16) + 14 daily living (D01–D14)
+- **Scale:** ~640k paired frames across all occlusion levels
 
 **Expected directory structure:**
 ```
 data/
-└── MMFi/
-    └── E01/
-        ├── S01/
-        │   ├── A03/
-        │   │   ├── mmwave/       # raw .bin files (TI IWR6843 UART format)
-        │   │   ├── lidar/        # .npy point clouds
-        │   │   └── skeleton/     # .npy joint coordinates (17 joints)
-        │   └── ...
-        └── ...
+└── MIST/
+    ├── P01/
+    │   ├── OL0/
+    │   │   ├── D06/
+    │   │   │   ├── mmwave/       # .npy point clouds (TI IWR6843)
+    │   │   │   ├── lidar/        # .npy point clouds (Livox Mid-360)
+    │   │   │   └── skeleton/     # .npy joint coordinates (H36M-17)
+    │   │   └── ...
+    │   ├── OL1/
+    │   └── OL2/
+    └── ...
 ```
 
-### OccluRadar-Human *(Coming Soon)*
-
-A self-collected dataset featuring paired complete/occluded mmWave point clouds with synchronized 3-D skeleton annotations for through-obstacle evaluation. To be released upon paper acceptance.
+To be released upon paper acceptance.
 
 ---
 
-## 🚀 Getting Started
+## MM-Fi (Cross-Dataset Transfer)
+
+We additionally evaluate cross-dataset generalisation on [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi) (40 subjects · 27 actions · 4 environments) without retraining on MM-Fi data.
+
+**Protocol:** E01 · S08–S10 · 8 shared action classes (A03, A12, A13, A17, A19, A22, A26, A27)
+
+| ID | Description | ID | Description |
+|---|---|---|---|
+| A03 | Chest expansion | A19 | Picking up object |
+| A12 | Squat | A22 | Kicking |
+| A13 | Raising hand | A26 | Jumping up |
+| A17 | Waving hand | A27 | Bowing |
+
+---
+
+## Results on MIST
+
+| Method | Venue | Type | COV-CD ↑ | MMD-CD ↓ (×10⁻³) |
+|---|---|---|---|---|
+| PCN | 3DV'18 | Completion | 0.083 | 9.01 |
+| PoinTr | ICCV'21 | Completion | 0.113 | 8.26 |
+| SnowflakeNet | ICCV'21 | Completion | 0.079 | 10.72 |
+| LAKe-Net | CVPR'22 | Completion | 0.085 | 8.69 |
+| mmPoint | BMVC'23 | Radar | 0.097 | 8.91 |
+| LION | NeurIPS'22 | Generative | 0.185 | 7.37 |
+| TIGER | CVPR'24 | Generative | 0.209 | 7.08 |
+| **PRISM (Ours)** | NeurIPS'26 | **Generative** | **0.362** | **4.91** |
+
+Evaluated on MIST-OL0, test subjects P07–P08, all 30 action classes.
+
+---
+
+## Getting Started
 
 ### Installation
 
@@ -104,113 +127,90 @@ conda activate prism
 
 pip install -r requirements.txt
 
-cd pointnet2_ops_lib
+cd extern/pointnet2_ops_lib
 python setup.py install
-cd ..
+cd ../..
 ```
 
 ### Training
 
-PRISM follows a **4-stage progressive training** strategy:
+PRISM uses a **4-stage progressive training** strategy.
 
-**Stage 1: SkelKD Pre-training** (~13h on RTX 3090)
+**Stage 1 — SkelKD pre-training**
 ```bash
 python train_SkelKD.py --save experiments
 ```
 
-**Stage 2: HierVAE Pre-training** (~46h on RTX 3090)
+**Stage 2 — HierVAE pre-training**
 ```bash
-python train_Compressor.py --save experiments
+python train_MMFi_Compressor.py --save experiments
 ```
 
-**Stage 3: Latent Diffusion Training** (~4h on RTX 3090)
+**Stage 3 — Latent diffusion training**
 ```bash
 python train_MMFi_LDT.py --save experiments
 ```
 
-**Stage 4: Joint Fine-tuning** *(coming soon)*
+**Stage 4 — Joint fine-tuning**
+```bash
+python train_Hybrid.py --save experiments
+```
 
 ### Evaluation
 
 ```bash
-python train_MMFi_LDT.py \
-    --save experiments \
-    --evaluate True \
-    --resume True \
-    --resume_epoch 1000 \
-    --run_dir experiments/Latent_Diffusion_Trainer/mmfi_YYYYMMDDHHMM
+python eval_ldt.py \
+    --resume experiments/path/to/checkpoint.pth
 ```
 
 ---
 
-## 📊 Results on MM-Fi
-
-| Method | Venue | Type | MMD-CD ↓ | COV-CD ↑ | 1-NN-CD ↓ | CD ↓ |
-|--------|-------|------|----------|----------|-----------|------|
-| PCN* | 3DV'18 | Compl. | 0.00887 | 0.0855 | 0.9994 | 0.0143 |
-| PoinTr* | ICCV'21 | Compl. | 0.00813 | 0.1172 | 0.9989 | **0.0138** |
-| SnowflakeNet*† | ICCV'21 | Compl. | 0.00842 | 0.1013 | 0.9991 | 0.0145 |
-| LAKe-Net*† | CVPR'22 | Compl. | 0.00856 | 0.0878 | 0.9993 | 0.0147 |
-| mmPoint* | BMVC'23 | Radar | 0.00877 | 0.0991 | 0.9995 | 0.0158 |
-| LION*† | NeurIPS'22 | Gen. | 0.00724 | 0.1892 | 0.9813 | — |
-| TIGER*† | CVPR'24 | Gen. | 0.00695 | 0.2147 | 0.9776 | — |
-| **PRISM (Ours)** | — | **Gen.** | **0.00483** | **0.3748** | **0.9697** | 0.0173 |
-| LiDAR GT (Oracle) | — | — | — | 1.000 | 0.500 | 0.000 |
-
-*\* Adapted to mmWave 256-pt input. †: estimated, verification ongoing.*
-
----
-
-## 📁 Repository Structure
-
-```
-PRISM/
-├── datasets/
-│   └── MMFiViPC.py           # MM-Fi dataloader (mmWave + LiDAR + Skeleton)
-├── model/
-│   ├── SkelKD/
-│   │   └── Network.py        # SkelKD cross-modal skeleton detector
-│   ├── Compressor/
-│   │   └── Network.py        # HierVAE encoder + decoder
-│   ├── GeoAE/
-│   │   └── Network.py        # Geometric auto-encoder (mmWave → 128 coarse pts)
-│   └── scorenet/
-│       └── score.py          # Condition Network + Dynamic Transformer
-├── completion_trainer/
-│   ├── SkelKD_Trainer.py
-│   ├── Compressor_Trainer.py
-│   └── Latent_SDE_Trainer.py
-├── train_SkelKD.py
-├── train_Compressor.py
-├── train_MMFi_LDT.py
-├── baseline/
-│   ├── PCN/                  # PCN adapted for mmWave
-│   ├── PoinTr/               # PoinTr adapted for mmWave
-│   └── mmPoint/              # mmPoint (BMVC'23) adapted for MM-Fi
-└── README.md
-```
-
----
-
-## ⚙️ Key Configurations
+## Key Configurations
 
 | Component | Parameter | Value |
-|-----------|-----------|-------|
+|---|---|---|
 | SkelKD | local_dim / global_dim | 128 / 256 |
 | HierVAE | z_dim / z_scales / levels | 20 / 8 / 6 |
-| Condition Net | KV tokens | 17 + 128 = 145 |
+| GeoAE | output points | 128 |
+| Condition Network | K/V tokens | 17 + 128 = 145 |
 | Dynamic Transformer | hidden / blocks / heads | 256 / 6 / 4 |
 | Diffusion | train_T / sample_steps | 1000 / 200 |
 | Training | lr / batch_size | 1e-4 / 16 |
 
 ---
 
-## 📝 Citation
+## Repository Structure
+
+```
+PRISM/
+├── datasets/
+│   ├── MISTViPC.py            # MIST dataloader
+│   └── MMFiViPC.py            # MM-Fi dataloader
+├── model/                     # Network definitions
+├── trainer/
+│   ├── Hybrid_Trainer.py      # Stage 4 joint fine-tuning
+│   ├── Compressor_Trainer.py  # HierVAE trainer
+│   └── Latent_SDE_Trainer.py  # Diffusion trainer
+├── completion_trainer/        # Stage-specific trainers
+├── diffusion/                 # VP-SDE implementation
+├── evaluation/                # COV-CD / MMD-CD metrics
+├── tools/                     # Logging and I/O utilities
+├── train_SkelKD.py            # Stage 1
+├── train_MMFi_Compressor.py   # Stage 2
+├── train_MMFi_LDT.py          # Stage 3
+├── train_Hybrid.py            # Stage 4
+├── eval_ldt.py                # Evaluation
+└── index.html                 # Project page
+```
+
+---
+
+## Citation
 
 ```bibtex
 @inproceedings{prism2026,
   title     = {PRISM: Human Point Cloud Reconstruction via
-               Skeleton-Guided Diffusion from mmWave Radar},
+               Skeleton-Guided Diffusion from MmWave Radar},
   author    = {Anonymous},
   booktitle = {Advances in Neural Information Processing Systems},
   year      = {2026}
@@ -219,6 +219,6 @@ PRISM/
 
 ---
 
-## 🙏 Acknowledgements
+## Acknowledgements
 
-This work builds upon [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi), [LION](https://github.com/nv-tlabs/LION), and the LDT backbone. We thank the authors for their excellent open-source contributions.
+This work builds upon [MM-Fi](https://ntu-aiot-lab.github.io/mm-fi), [LION](https://github.com/nv-tlabs/LION), and the PointNet++ operators. We thank the authors for their excellent open-source contributions.
