@@ -23,10 +23,10 @@ Usage
 cd ~/Desktop/PRISM
 CUDA_VISIBLE_DEVICES=0 python vis_teaser.py \\
     --action A27 \\
-    --baseline_frames 30,35,40,45 \\
-    --prism_frames    30,35,40,50 \\
-    --baseline_frame_labels '$t_1$ (upright),$t_2$ (descent),$t_3$ (bow),$t_4$ (ascent)' \\
-    --prism_frame_labels    '$t_1$ (upright),$t_2$ (descent),$t_3$ (bow),$t_5$ (recover)' \\
+    --baseline_frames 30,40,50 \\
+    --prism_frames    30,40,50 \\
+    --baseline_frame_labels '$t_1$ (upright),$t_2$ (mid-bow),$t_3$ (full bow)' \\
+    --prism_frame_labels    '$t_1$ (upright),$t_2$ (mid-bow),$t_3$ (full bow)' \\
     --pcn_ckpt        baseline/PCN/output_mmfi/PCN-0327_1055/checkpoints/bestl1_network.pth \\
     --pointr_ckpt     baseline/PoinTr/output_mmfi/PoinTr-0319_1503/checkpoints/bestl1_network.pth \\
     --snowflake_ckpt  baseline/SnowflakeNet/output_mmfi/SnowflakeNet-0327_0113/checkpoints/bestl1_network.pth \\
@@ -60,8 +60,8 @@ PRISM_ROW_BOLD   = [True, False]
 
 # ── defaults ──────────────────────────────────────────────────────────────────
 _DEFAULT_ACTION          = 'A27'
-_DEFAULT_BASELINE_FRAMES = [30, 35, 40, 45]
-_DEFAULT_PRISM_FRAMES    = [30, 35, 40, 45]
+_DEFAULT_BASELINE_FRAMES = [30, 40, 50]   # upright → mid-bow → full bow
+_DEFAULT_PRISM_FRAMES    = [30, 40, 50]
 
 LIDAR_VIS_N  = 256
 MMWAVE_NET_N = 512
@@ -82,7 +82,7 @@ METHOD_COLORS = {
 ACTION_MAP = {a: i for i, a in enumerate(sorted(
     ['A03', 'A12', 'A13', 'A17', 'A19', 'A22', 'A26', 'A27']))}
 
-CELL_PX  = 320
+CELL_PX  = 320   # pixels per cell (square) — same as vis_qual_comparison
 CELL_DPI = 150
 CELL_IN  = CELL_PX / CELL_DPI
 
@@ -368,16 +368,16 @@ def infer_prism(trainer, ae, fd, action, cfg, device):
 # ══════════════════════════════════════════════════════════════════════════════
 
 _RENDER_STYLE = {
-    'pcn':       dict(s=5, alpha=0.90, depthshade=True),
-    'pointr':    dict(s=5, alpha=0.90, depthshade=True),
-    'snowflake': dict(s=5, alpha=0.90, depthshade=True),
-    'mmpoint':   dict(s=5, alpha=0.90, depthshade=True),
-    'prism':     dict(s=5, alpha=0.97, depthshade=True),
-    'lidar':     dict(s=5, alpha=0.95, depthshade=True),
+    'pcn':       dict(s=3, alpha=0.90, depthshade=True),
+    'pointr':    dict(s=3, alpha=0.90, depthshade=True),
+    'snowflake': dict(s=3, alpha=0.90, depthshade=True),
+    'mmpoint':   dict(s=3, alpha=0.90, depthshade=True),
+    'prism':     dict(s=3, alpha=0.97, depthshade=True),
+    'lidar':     dict(s=3, alpha=0.95, depthshade=True),
 }
 
 def _cell_img(pc, ref_pc, row_key):
-    """Render one 3-D scatter cell; ref_pc fixes axis bounds only."""
+    """Render one 3-D scatter cell with per-method flat color; ref_pc fixes axis bounds."""
     fig = plt.figure(figsize=(CELL_IN, CELL_IN), facecolor='white', dpi=CELL_DPI)
     canvas = FigureCanvasAgg(fig)
     ax = fig.add_axes([0, 0, 1, 1], projection='3d')
@@ -417,7 +417,7 @@ def _white_bg(rgba):
     a   = rgba[:, :, 3:4].astype(np.float32) / 255.
     return ((rgb * a + (1. - a)) * 255).astype(np.uint8)
 
-def _autocrop(img, pad=14):
+def _autocrop(img, pad=6):
     """Trim white borders from a cell, keeping `pad` px margin on each side."""
     mask = np.any(img < 245, axis=2)   # any non-white pixel
     rows = np.where(mask.any(1))[0]
@@ -598,6 +598,105 @@ def assemble_and_save(baseline_cells, prism_cells,
     print(f'\n✓  Saved: {out_path}')
 
 
+def _uniform_crop_teaser(cell_imgs, n_rows, all_rows):
+    """Autocrop every cell then pad all to the same max content bbox.
+    cell_imgs keyed by row index (0..n_rows-1), then method key.
+    Matches vis_qual_comparison._uniform_crop logic."""
+    cropped = {i: {} for i in range(n_rows)}
+    max_h, max_w = 0, 0
+    for i in range(n_rows):
+        for rk in all_rows:
+            c = _autocrop(cell_imgs[i][rk])
+            cropped[i][rk] = c
+            max_h = max(max_h, c.shape[0])
+            max_w = max(max_w, c.shape[1])
+    for i in range(n_rows):
+        for rk in all_rows:
+            img = cropped[i][rk]
+            h, w = img.shape[:2]
+            canvas = np.full((max_h, max_w, 3), 255, dtype=np.uint8)
+            y0 = (max_h - h) // 2; x0 = (max_w - w) // 2
+            canvas[y0:y0+h, x0:x0+w] = img
+            cropped[i][rk] = canvas
+    return cropped, max_h, max_w
+
+
+def assemble_unified(cell_imgs, n_rows, all_rows, col_labels, col_bold,
+                     row_labels, out_path, dpi):
+    """
+    Unified grid — identical layout logic to vis_qual_comparison.assemble_and_save.
+
+    cell_imgs : dict keyed by row index (0..n_rows-1), then method key.
+                Baseline row i uses baseline_frame_indices[i];
+                PRISM row i uses prism_frame_indices[i] — fully independent.
+    rows = frames (t1, t2, t3)   → left-side row labels (rotated 90°)
+    cols = methods (6 total)     → top column labels
+    """
+    cell_imgs, cell_h, cell_w = _uniform_crop_teaser(cell_imgs, n_rows, all_rows)
+
+    # Horizontal gap between columns (pixels of white space)
+    col_gap_px = 20
+    n_cols     = len(all_rows)
+    gap_col    = np.full((cell_h, col_gap_px, 3), 255, np.uint8)
+
+    # Build pixel grid: rows = row indices, cols = methods, with gaps
+    grid_rows = []
+    for i in range(n_rows):
+        parts = []
+        for j, rk in enumerate(all_rows):
+            parts.append(cell_imgs[i][rk])
+            if j < n_cols - 1:
+                parts.append(gap_col)
+        grid_rows.append(np.hstack(parts))
+    grid = np.vstack(grid_rows)
+
+    grid_h_px, grid_w_px = grid.shape[:2]
+    grid_h_in = grid_h_px / dpi
+    grid_w_in = grid_w_px / dpi
+
+    margin_left = 0.52   # same as qual_comparison
+    margin_top  = 0.28
+
+    fig_w = margin_left + grid_w_in
+    fig_h = margin_top  + grid_h_in
+
+    fig = plt.figure(figsize=(fig_w, fig_h), dpi=dpi, facecolor='white')
+    ax  = fig.add_axes([margin_left / fig_w, 0.,
+                        grid_w_in   / fig_w, grid_h_in / fig_h])
+    ax.imshow(grid, aspect='equal', interpolation='lanczos')
+    ax.set_axis_off()
+
+    # Column label centres accounting for inter-column gaps
+    def _col_center_px(j):
+        return j * (cell_w + col_gap_px) + cell_w / 2
+
+    # Column labels (method names, top) — same font/style as qual_comparison
+    for j, (label, bold) in enumerate(zip(col_labels, col_bold)):
+        x = (margin_left + _col_center_px(j) / dpi) / fig_w
+        y = (grid_h_in + margin_top * 0.55) / fig_h
+        color  = '#c0392b' if bold else '#111111'
+        weight = 'bold'    if bold else 'semibold'
+        fig.text(x, y, label.replace('\n', ' '),
+                 ha='center', va='center',
+                 fontsize=6.5, fontweight=weight, color=color,
+                 transform=fig.transFigure)
+
+    # Row labels (frame labels, left, rotated 90°) — same as qual_comparison
+    for i, label in enumerate(row_labels):
+        row_center_y = (grid_h_in - (i + 0.5) * cell_h / dpi) / fig_h
+        x = margin_left * 0.45 / fig_w
+        fig.text(x, row_center_y, label,
+                 ha='center', va='center',
+                 fontsize=6.5, fontweight='normal', color='#111111',
+                 rotation=90, transform=fig.transFigure)
+
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    fig.savefig(out_path, dpi=dpi, facecolor='white',
+                bbox_inches='tight', pad_inches=0.04)
+    plt.close(fig)
+    print(f'\n✓  Saved: {out_path}')
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  Main
 # ══════════════════════════════════════════════════════════════════════════════
@@ -734,35 +833,44 @@ def main():
             lidar = fd['lidar_vis'],
         )
 
-    # ── render cells ──────────────────────────────────────────────────────────
+    # ── render cells keyed by row index (not frame index) ─────────────────────
+    # Row i: baseline methods use baseline_frame_indices[i],
+    #        PRISM/GT methods use prism_frame_indices[i].  Fully independent.
     print('\n[5] Rendering cells...')
-    total = len(BASELINE_ROWS) * n_b + len(PRISM_ROWS) * n_p
+    all_rows  = BASELINE_ROWS + PRISM_ROWS
+    n_rows    = min(n_b, n_p)   # number of rows in the unified grid
+    total     = (len(BASELINE_ROWS) + len(PRISM_ROWS)) * n_rows
     k = 0
+    cell_imgs = {i: {} for i in range(n_rows)}
 
-    baseline_cells = []
     for rk in BASELINE_ROWS:
-        row = []
-        for fi in baseline_frame_indices:
+        for i, fi in enumerate(baseline_frame_indices[:n_rows]):
             rgba = _cell_img(raw_b[fi][rk], ref_pc, rk)
-            row.append(_autocrop(_white_bg(rgba)))
+            cell_imgs[i][rk] = _white_bg(rgba)
             k += 1; sys.stdout.write(f'\r  {k}/{total}'); sys.stdout.flush()
-        baseline_cells.append(row)
 
-    prism_cells = []
     for rk in PRISM_ROWS:
-        row = []
-        for fi in prism_frame_indices:
+        for i, fi in enumerate(prism_frame_indices[:n_rows]):
             rgba = _cell_img(raw_p[fi][rk], ref_pc, rk)
-            row.append(_autocrop(_white_bg(rgba)))
+            cell_imgs[i][rk] = _white_bg(rgba)
             k += 1; sys.stdout.write(f'\r  {k}/{total}'); sys.stdout.flush()
-        prism_cells.append(row)
     print()
 
-    # ── assemble ──────────────────────────────────────────────────────────────
+    # ── assemble unified grid (vis_qual_comparison style) ────────────────────
     print('[6] Assembling figure...')
-    assemble_and_save(baseline_cells, prism_cells,
-                      baseline_labels, prism_labels,
-                      args.out, args.dpi)
+    all_col_labels = BASELINE_ROW_LABELS + PRISM_ROW_LABELS
+    all_col_bold   = BASELINE_ROW_BOLD   + PRISM_ROW_BOLD
+
+    assemble_unified(
+        cell_imgs  = cell_imgs,
+        n_rows     = n_rows,
+        all_rows   = all_rows,
+        col_labels = all_col_labels,
+        col_bold   = all_col_bold,
+        row_labels = baseline_labels[:n_rows],
+        out_path   = args.out,
+        dpi        = args.dpi,
+    )
     print(f'    Open with: eog {args.out}')
 
 

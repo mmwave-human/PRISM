@@ -542,19 +542,19 @@
 <div class="hero">
   <div class="badge">
     <span class="badge-dot"></span>
-    Anonymous Submission &nbsp;·&nbsp; NeurIPS 2025
+    Anonymous Submission &nbsp;·&nbsp; NeurIPS 2026
   </div>
 
   <h1>
     <em>PRISM</em>: Human Point Cloud Reconstruction<br>
-    for Human Point Cloud Completion<br>
-    from Sparse mmWave Radar
+    via Skeleton-Guided Diffusion<br>
+    from mmWave Radar
   </h1>
 
   <p class="hero-sub">
-    Recovering dense, topologically correct human point clouds
-    from 50–150 radar points per frame, guided by cross-modal
-    skeleton priors and conditional latent diffusion.
+    Introducing MIST — the first mmWave dataset with a physical barrier between sensor
+    and subject — and PRISM, a skeleton-guided latent diffusion framework that reconstructs
+    LiDAR-quality human point clouds from sparse radar returns under three controlled occlusion levels.
   </p>
 
   <p class="hero-authors">Anonymous Authors &nbsp;·&nbsp; Anonymous Institution</p>
@@ -571,13 +571,13 @@
 <div class="teaser-wrap">
   <div class="teaser">
     <video autoplay muted loop playsinline>
-      <source src="assets/PRISM_Demo.mp4" type="video/mp4"/>
-      <img src="assets/SKD-Net_framework.jpg" alt="SKD-Net teaser"/>
+      <source src="assets/fig/PRISM_Demo.mp4" type="video/mp4"/>
+      <img src="assets/fig/PRISM architecture overview.jpg" alt="PRISM teaser"/>
     </video>
   </div>
   <p class="teaser-cap">
-    PRISM reconstructs dense human point clouds (right) from sparse mmWave radar inputs (left)
-    across diverse actions. &nbsp;<em>Placeholder — own results coming soon.</em>
+    PRISM reconstructs dense human point clouds from sparse mmWave radar across 30 MIST action classes
+    and three occlusion levels.
   </p>
 </div>
 
@@ -588,26 +588,27 @@
   <p class="eyebrow">Abstract</p>
   <h2>From sparse radar signals<br>to complete human shapes</h2>
   <p>
-    mmWave radar enables non-intrusive, privacy-preserving human sensing under all lighting and
-    weather conditions, but its inherent sparsity (50–150 points per frame) fundamentally limits
-    downstream analysis. Existing point cloud completion methods are designed for dense, rigid-object
-    inputs and fail under the extreme sparsity and non-rigid topology of the human body.
+    mmWave FMCW radar offers all-weather, non-contact, privacy-preserving human sensing,
+    yet its inherent sparsity severely limits downstream body analysis and no existing dataset
+    provides a paired quantitative benchmark for dense human point cloud reconstruction under occlusion.
   </p>
   <p>
-    We propose <strong>PRISM</strong>, a two-path framework that decouples structural alignment
-    from shape completion. <strong>SkelKD</strong> learns cross-modal skeleton joint coordinates
-    from radar observations via attention-based soft aggregation, resolving the spatial
-    misalignment between depth-camera skeletons and radar space. A <strong>PE Encoder</strong>
-    then compresses sparse points into skeleton-aligned latent tokens Z₀.
-    A three-signal <strong>Condition Network</strong> — fusing skeleton GCN topology,
-    skeleton-guided mmWave geometry, and action category — guides a
-    <strong>Dynamic Transformer</strong> to denoise Z_T → Z₀, recovering complete,
-    action-consistent human point clouds.
+    We present <strong>MIST</strong>, the first mmWave human point cloud dataset with a physical
+    barrier between sensor and subject. MIST pairs clear-view and through-obstacle captures of
+    the same subjects performing the same actions, with synchronized LiDAR as 3D ground truth
+    and a three-level occlusion design converting attenuation severity into a controlled variable —
+    spanning <strong>8 subjects, 30 action classes, and 640k paired frames</strong>.
   </p>
   <p>
-    PRISM significantly outperforms both deterministic completion baselines (PCN, PoinTr,
-    Snowflake, LAKe-Net) and generative baselines (LION, TIGER) on MM-Fi, while maintaining
-    temporal consistency across frames.
+    We also propose <strong>PRISM</strong>, a skeleton-guided conditional latent diffusion
+    framework reconstructing dense human point clouds from sparse mmWave radar alone.
+    <strong>SkelKD</strong> regresses radar-aligned joint positions via learnable cross-attention.
+    <strong>GeoAE</strong> produces density-invariant coarse body geometry.
+    Together with action class embeddings, these three conditioning streams guide a
+    <strong>Dynamic Transformer</strong> denoiser under a VP-SDE framework.
+    On MIST, PRISM achieves COV-CD <strong>0.362</strong> against 0.113 for the strongest
+    completion baseline; under through-obstacle attenuation where all baselines collapse to
+    fixed-template outputs, PRISM maintains meaningful reconstruction.
   </p>
 </div>
 
@@ -619,39 +620,42 @@
     <p class="eyebrow">Method</p>
     <h2>Two-path skeleton-guided architecture</h2>
     <p>
-      Path ① establishes structural priors: SkelKD aligns skeleton joints to radar space,
-      while PE Encoder and Auto-encoder E produce skeleton-aligned latent tokens and
-      coarse geometry, respectively. Path ② performs conditional latent diffusion guided
-      by these priors through a cross-attention Dynamic Transformer.
+      The <strong>condition path</strong> processes the sparse mmWave cloud through SkelKD,
+      GeoAE, and an action class embedding, assembling three streams into a 145-token K/V
+      sequence injected at every denoising layer. The <strong>diffusion path</strong> encodes
+      the cloud into a compact 8×120 structured latent via HierVAE, iteratively denoises it
+      under a VP-SDE schedule driven by the condition K/V sequence through the Dynamic
+      Transformer, and decodes the result to a dense 256-point output cloud.
     </p>
   </div>
 
-  <img src="assets/SKD-Net_framework.jpg" alt="SKD-Net Framework" class="fw-img"/>
+  <img src="assets/fig/PRISM architecture overview.jpg" alt="PRISM Framework" class="fw-img"/>
   <p class="fig-cap">
-    Figure 1. Overview of SKD-Net. Path ① (left): SkelKD, PE Encoder, Auto-encoder E, Condition Network.
-    Path ② (right): Forward diffusion and Dynamic Transformer reverse denoising.
+    Figure 1. Overview of PRISM. Condition path: SkelKD → GCN tokens, GeoAE → coarse geometry tokens,
+    and action embedding → AdaLN signal, assembled into a 145-token K/V sequence.
+    Diffusion path: HierVAE encoding, VP-SDE denoising by the Dynamic Transformer, dense point cloud decoding.
   </p>
 
   <div class="pipeline">
     <div class="pipe-card">
       <div class="pipe-num">01</div>
       <h3>SkelKD</h3>
-      <p>Cross-modal skeleton detector. Refines depth-camera joints using radar observations via PCN encoder and attention-based joint feature aggregation, resolving coordinate system misalignment.</p>
+      <p>Takes sparse mmWave cloud as sole input and regresses 17 radar-aligned skeleton joints via 17 learnable query embeddings attending over per-point features. Trained with MPJPE loss and noise/masking augmentation to simulate occlusion; frozen before diffusion training.</p>
     </div>
     <div class="pipe-card">
       <div class="pipe-num">02</div>
-      <h3>PE Encoder</h3>
-      <p>Compresses variable-length sparse point clouds into fixed 8×120 latent tokens Z₀ via skeleton-anchored cross-attention and VAE reparameterization. Shared decoder for reconstruction.</p>
+      <h3>HierVAE</h3>
+      <p>Hierarchical VAE that encodes sparse point clouds into a compact 8×120 structured latent Z₀ through six levels of local grouping and residual self-attention. Decoder produces K=256 output points. Pre-trained and frozen so the denoiser trains within a stable latent geometry.</p>
     </div>
     <div class="pipe-card">
       <div class="pipe-num">03</div>
-      <h3>Condition Network</h3>
-      <p>Fuses skeleton GCN tokens (17), coarse geometry tokens (128), and action category label into a unified 145-token K/V sequence for cross-attention conditioning.</p>
+      <h3>GeoAE + Condition Network</h3>
+      <p>GeoAE learns a density-invariant mapping from sparse radar cloud to 128 canonical coarse body points, stable under occlusion. The Condition Network encodes GeoAE output and SkelKD GCN features into a 145-token K/V sequence; action identity enters the global AdaLN signal c = e_t + e_y + Linear(g_s).</p>
     </div>
     <div class="pipe-card">
       <div class="pipe-num">04</div>
       <h3>Dynamic Transformer</h3>
-      <p>Denoises Z_T → Z₀ through N cross-attention blocks conditioned on the unified condition tokens. Adaptive LayerNorm modulated jointly by time embedding and action category.</p>
+      <p>Six ResidualBlocks alternating cross-attention (blocks 1, 3, 5) with self-attention (blocks 2, 4, 6), conditioned on the 145-token K/V sequence. AdaLN driven jointly by timestep, action label, and skeleton global pool. 200-step CFG inference yields X_f ∈ ℝ^(256×3).</p>
     </div>
   </div>
 </div>
@@ -664,13 +668,10 @@
     <p class="eyebrow">Results</p>
     <h2>Quantitative & qualitative evaluation</h2>
     <p>
-      We evaluate on MM-Fi (S08–S10, E01) using generative metrics:
-      MMD-CD ↓ (fidelity), COV-CD ↑ (coverage), 1-NN-CD ↓ (distribution alignment, ideal = 50%).
+      Evaluated on MIST-OL0 (test subjects P07–P08, all 30 action classes) using distribution metrics:
+      COV-CD ↑ (fraction of ground-truth shapes covered) and MMD-CD ↓ (fidelity; ×10⁻³).
+      All baselines re-trained on MIST subjects P01–P06.
     </p>
-  </div>
-
-  <div class="notice">
-    ⚠️&nbsp; Full quantitative results pending experiment completion. Placeholder table shown below.
   </div>
 
   <div class="table-wrap">
@@ -678,53 +679,53 @@
       <thead>
         <tr>
           <th>Method</th><th>Venue</th><th>Type</th>
-          <th>MMD-CD ↓</th><th>COV-CD ↑</th>
-          <th>1-NN-CD ↓</th><th>1-NN-EMD ↓</th>
+          <th>COV-CD ↑</th><th>MMD-CD ↓ (×10⁻³)</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td>PCN*</td><td>3DV'18</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>PoinTr*</td><td>ICCV'21</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>Snowflake*</td><td>ICCV'21</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>LAKe-Net*</td><td>CVPR'22</td><td>Completion</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>LION*</td><td>NeurIPS'22</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
-        <tr><td>TIGER*</td><td>CVPR'24</td><td>Generative</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+        <tr><td>PCN</td><td>3DV'18</td><td>Completion</td><td>0.083</td><td>9.01</td></tr>
+        <tr><td>PoinTr</td><td>ICCV'21</td><td>Completion</td><td>0.113</td><td>8.26</td></tr>
+        <tr><td>SnowflakeNet</td><td>ICCV'21</td><td>Completion</td><td>0.079</td><td>10.72</td></tr>
+        <tr><td>LAKe-Net</td><td>CVPR'22</td><td>Completion</td><td>0.085</td><td>8.69</td></tr>
+        <tr><td>mmPoint</td><td>BMVC'23</td><td>Radar</td><td>0.097</td><td>8.91</td></tr>
+        <tr><td>LION</td><td>NeurIPS'22</td><td>Generative</td><td>0.185</td><td>7.37</td></tr>
+        <tr><td>TIGER</td><td>CVPR'24</td><td>Generative</td><td>0.209</td><td>7.08</td></tr>
         <tr class="ours">
-          <td>PRISM (Ours)</td><td>NeurIPS'25</td><td>Generative</td>
-          <td>TBD</td><td>TBD</td><td>TBD</td><td>TBD</td>
+          <td>PRISM (Ours)</td><td>NeurIPS'26</td><td>Generative</td>
+          <td>0.362</td><td>4.91</td>
         </tr>
       </tbody>
     </table>
   </div>
   <p style="font-size:0.78rem; color:var(--text3); margin-top:0.6rem;">
-    * Adapted to mmWave 256-point input.
+    PRISM achieves 3.2× coverage improvement over PoinTr and 40.6% lower matching distance.
   </p>
 
   <!-- Video comparisons -->
   <h3 style="font-size:1rem; font-weight:500; margin-top:3rem; margin-bottom:0.4rem;">Qualitative Results</h3>
-  <p style="font-size:0.875rem; margin-bottom:0;">Completion results across action categories. Own results coming soon.</p>
+  <p style="font-size:0.875rem; margin-bottom:0;">Reconstruction across representative MIST action categories.</p>
 
   <div class="vgrid">
     <div class="vcard">
       <video autoplay muted loop playsinline>
-        <source src="assets/PRISM_Demo.mp4" type="video/mp4"/>
-        <img src="assets/SKD-Net_framework.jpg" alt="A27"/>
+        <source src="assets/fig/PRISM_Demo.mp4" type="video/mp4"/>
+        <img src="assets/fig/PRISM architecture overview.jpg" alt="D06"/>
       </video>
-      <div class="vcard-label">A27 · Bowing</div>
+      <div class="vcard-label">D06 · Forward Bend</div>
     </div>
     <div class="vcard">
       <video autoplay muted loop playsinline>
-        <source src="assets/PRISM_Demo.mp4" type="video/mp4"/>
-        <img src="assets/SKD-Net_framework.jpg" alt="A17"/>
+        <source src="assets/fig/PRISM_Demo.mp4" type="video/mp4"/>
+        <img src="assets/fig/PRISM architecture overview.jpg" alt="D11"/>
       </video>
-      <div class="vcard-label">A17 · Waving Hand</div>
+      <div class="vcard-label">D11 · Waving Hand</div>
     </div>
     <div class="vcard">
       <video autoplay muted loop playsinline>
-        <source src="assets/PRISM_Demo.mp4" type="video/mp4"/>
-        <img src="assets/SKD-Net_framework.jpg" alt="A22"/>
+        <source src="assets/fig/PRISM_Demo.mp4" type="video/mp4"/>
+        <img src="assets/fig/PRISM architecture overview.jpg" alt="D14"/>
       </video>
-      <div class="vcard-label">A22 · Kicking</div>
+      <div class="vcard-label">D14 · Forward Kick</div>
     </div>
   </div>
 </div>
@@ -744,19 +745,19 @@
 
   <!-- Action selector -->
   <div class="action-tabs" id="action-tabs">
-    <button class="act-btn active" data-action="A03" style="--c:#4D96FF">A03 · Chest V</button>
-    <button class="act-btn"        data-action="A12" style="--c:#FF6B6B">A12 · Squat</button>
-    <button class="act-btn"        data-action="A13" style="--c:#48BB78">A13 · Raise Hand</button>
-    <button class="act-btn"        data-action="A17" style="--c:#F72585">A17 · Wave Hand</button>
-    <button class="act-btn"        data-action="A19" style="--c:#FF9A3C">A19 · Pick Up</button>
-    <button class="act-btn"        data-action="A22" style="--c:#9B59B6">A22 · Kick</button>
-    <button class="act-btn"        data-action="A26" style="--c:#D4A017">A26 · Jump Up</button>
-    <button class="act-btn"        data-action="A27" style="--c:#00B4D8">A27 · Bowing</button>
+    <button class="act-btn active" data-action="D06" style="--c:#00B4D8">D06 · Forward Bend</button>
+    <button class="act-btn"        data-action="D03" style="--c:#FF6B6B">D03 · Squat</button>
+    <button class="act-btn"        data-action="D05" style="--c:#48BB78">D05 · Raise Arms</button>
+    <button class="act-btn"        data-action="D11" style="--c:#F72585">D11 · Waving Hand</button>
+    <button class="act-btn"        data-action="D07" style="--c:#FF9A3C">D07 · Pick Up Object</button>
+    <button class="act-btn"        data-action="D14" style="--c:#9B59B6">D14 · Forward Kick</button>
+    <button class="act-btn"        data-action="D15" style="--c:#D4A017">D15 · Jumping</button>
+    <button class="act-btn"        data-action="D16" style="--c:#4D96FF">D16 · Forward Fall</button>
   </div>
 
   <!-- Viewer: full-width main frame -->
   <div class="diff-main-wrap">
-    <img id="diff-img" src="assets/diffusion/A03/step_000.png" alt="Denoising step"/>
+    <img id="diff-img" src="assets/diffusion/D06/step_000.png" alt="Denoising step"/>
   </div>
 
   <!-- Step slider -->
@@ -792,27 +793,28 @@
 
   <div class="dset-grid">
     <div class="dset-card">
+      <h3>MIST <span class="tag tag-soon">Coming Soon</span></h3>
+      <p>
+        First mmWave human point cloud dataset with a physical barrier between sensor and subject.
+        Paired clear-view (OL0) and through-obstacle (OL1, OL2) captures with synchronized overhead
+        LiDAR as dense 3D ground truth. Dual TI IWR6843 radars, Livox Mid-360, and Intel RealSense D435i.
+      </p>
+      <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
+        8 subjects · 30 action classes · 3 occlusion levels · ~640k paired frames.
+        To be released upon paper acceptance.
+      </p>
+    </div>
+    <div class="dset-card">
       <h3>MM-Fi <span class="tag tag-pub">Public</span></h3>
       <p>
-        Large-scale multi-modal dataset with synchronized mmWave, LiDAR, RGB, depth and WiFi CSI.
+        Large-scale multi-modal dataset with synchronized mmWave, LiDAR, RGB-D, and WiFi CSI.
         40 subjects · 27 actions · 4 environments · 320K+ frames.
       </p>
       <p style="margin-top:0.75rem;">
         <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">→ Official page</a>
       </p>
       <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
-        We use: E01 · S01–S10 · {A03, A12, A13, A17, A19, A22, A26, A27}
-      </p>
-    </div>
-    <div class="dset-card">
-      <h3>OccluRadar-Human <span class="tag tag-soon">Coming Soon</span></h3>
-      <p>
-        Self-collected dataset with paired complete / occluded mmWave point clouds and synchronized
-        3D skeleton annotations. Dual-radar + RealSense D435i setup. Designed for occlusion
-        robustness evaluation.
-      </p>
-      <p style="font-size:0.78rem; color:var(--text3); margin-top:0.5rem;">
-        To be released upon paper acceptance.
+        Cross-dataset transfer: E01 · S08–S10 · 8 shared action classes (A03, A12, A13, A17, A19, A22, A26, A27).
       </p>
     </div>
   </div>
@@ -828,21 +830,21 @@
 
   <div class="bib-wrap">
     <button class="copy-btn" onclick="copyBib(this)">Copy</button>
-    <pre id="bib">@inproceedings{skdnet2025,
-  title     = {PRISM: Human Point Cloud Reconstruction via Skeleton-Guided Latent Diffusion for Human
-               Point Cloud Completion from Sparse mmWave Radar},
+    <pre id="bib">@inproceedings{prism2026,
+  title     = {PRISM: Human Point Cloud Reconstruction via
+               Skeleton-Guided Diffusion from MmWave Radar},
   author    = {Anonymous},
   booktitle = {Advances in Neural Information Processing Systems},
-  year      = {2025}
+  year      = {2026}
 }</pre>
   </div>
 </div>
 
 <!-- FOOTER -->
 <footer>
-  <p>Built for anonymous review &nbsp;·&nbsp; NeurIPS 2025</p>
+  <p>Built for anonymous review &nbsp;·&nbsp; NeurIPS 2026</p>
   <p style="margin-top:0.3rem;">
-    Inspired by <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">MM-Fi</a>
+    <a href="https://ntu-aiot-lab.github.io/mm-fi" target="_blank">MM-Fi</a>
     &nbsp;·&nbsp;
     <a href="https://github.com/mmwave-human/PRISM" target="_blank">GitHub</a>
   </p>
@@ -874,7 +876,7 @@
       })
       .catch(() => { /* no manifest yet — use defaults */ });
 
-    let currentAction = 'A03';
+    let currentAction = 'D06';
     let currentStep   = 0;
     let playing       = false;
     let playTimer     = null;

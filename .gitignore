@@ -22,6 +22,8 @@ Thumbs.db
 
 # 日志
 *.log
+nohup.out
+logs_*.txt
 wandb/
 runs/
 .idea/

@@ -210,10 +210,10 @@ python vis_diffusion_web.py \
 CUDA_VISIBLE_DEVICES=1 /home/hjc/miniconda3/envs/SKD-Net/bin/python vis_teaser.py \
     --cfg             experiments/Latent_Diffusion_Trainer/config_8actions.yaml \
     --action A27 \
-    --baseline_frames 30,35,38,48 \
-    --prism_frames    30,39,40,48 \
-    --baseline_frame_labels '$t_1$ (upright),$t_2$ (descent),$t_3$ (full bow),$t_4$ (ascent)' \
-    --prism_frame_labels    '$t_1$ (upright),$t_2$ (descent),$t_3$ (full bow),$t_5$ (recover)' \
+    --baseline_frames 30,35,38 \
+    --prism_frames    30,39,40 \
+    --baseline_frame_labels '$t_1$ (upright),$t_2$ (mid-bow),$t_3$ (full bow)' \
+    --prism_frame_labels    '$t_1$ (upright),$t_2$ (mid-bow),$t_3$ (full bow)' \
     --pcn_ckpt        baseline/PCN/output_mmfi/PCN-0319_1438/checkpoints/bestl1_network.pth \
     --pointr_ckpt     baseline/PoinTr/output_mmfi/PoinTr-0319_1503/checkpoints/bestl1_network.pth \
     --snowflake_ckpt  baseline/SnowflakeNet/output_mmfi/SnowflakeNet-0327_0113/checkpoints/bestl1_network.pth \
@@ -231,3 +231,4 @@ CUDA_VISIBLE_DEVICES=1 python vis_qual_comparison.py \
 
 python vis_demo.py --mmfi_start 10 --mmfi_end 27 --mist_start 23 --mist_end 46
 python vis_demo.py --mmfi_start 28 --mmfi_end 46 --mist_start 47 --mist_end 66
+python vis_prism_demo.py --mmfi_start 28 --mmfi_end 46 --mist_start 47 --mist_end 66

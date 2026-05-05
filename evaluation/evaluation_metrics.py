@@ -162,7 +162,7 @@ def _pairwise_EMD_CD_(sample_pcs, ref_pcs, batch_size, accelerated_cd=True,
     return all_cd, all_emd
 
 
-def _pairwise_CD_(sample_pcs, ref_pcs, batch_size, verbose=True):
+def _pairwise_CD_(sample_pcs, ref_pcs, batch_size, accelerated_cd=True, verbose=True):
     N_sample = sample_pcs.shape[0]
     N_ref = ref_pcs.shape[0]
     all_cd = []
